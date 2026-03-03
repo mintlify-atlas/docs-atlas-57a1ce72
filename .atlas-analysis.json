@@ -1,0 +1,119 @@
+{
+  "projectType": "general",
+  "projectName": "Note",
+  "projectDescription": "A comprehensive technical knowledge base covering Java, Spring, MySQL, algorithms, data structures, distributed systems, and interview preparation.",
+  "theme": "maple",
+  "primaryColor": "#FF6B6B",
+  "lightColor": "#FFE66D",
+  "darkColor": "#4ECDC4",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Overview",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "repository-setup"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Core Topics",
+        "groups": [
+          {
+            "group": "Java & Spring",
+            "pages": [
+              "topics/java/fundamentals",
+              "topics/java/jvm",
+              "topics/java/concurrency",
+              "topics/spring/spring-framework",
+              "topics/spring/spring-boot"
+            ]
+          },
+          {
+            "group": "Databases",
+            "pages": [
+              "topics/databases/mysql-basics",
+              "topics/databases/mysql-advanced",
+              "topics/databases/redis"
+            ]
+          },
+          {
+            "group": "Algorithms & Data Structures",
+            "pages": [
+              "topics/algorithms/overview",
+              "topics/algorithms/sorting",
+              "topics/algorithms/binary-search",
+              "topics/algorithms/dynamic-programming",
+              "topics/algorithms/graph-theory"
+            ]
+          },
+          {
+            "group": "System Design",
+            "pages": [
+              "topics/distributed-systems/overview",
+              "topics/distributed-systems/service-discovery",
+              "topics/system-design/load-balancing",
+              "topics/system-design/message-queue"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Tools & Practice",
+        "groups": [
+          {
+            "group": "Development Tools",
+            "pages": [
+              "tools/git",
+              "tools/docker",
+              "tools/maven",
+              "tools/mybatis"
+            ]
+          },
+          {
+            "group": "Linux & DevOps",
+            "pages": [
+              "tools/linux-basics",
+              "tools/linux-performance"
+            ]
+          },
+          {
+            "group": "Interview Preparation",
+            "pages": [
+              "interview/overview",
+              "interview/common-questions",
+              "interview/coding-exercises"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Comprehensive Java and Spring framework notes with real examples",
+    "MySQL fundamentals and advanced optimization techniques",
+    "Algorithm implementations with detailed explanations",
+    "Distributed systems and microservices architecture patterns",
+    "Development tools configuration and best practices",
+    "Interview preparation materials and coding exercises",
+    "Daily learning journal and progress tracking"
+  ],
+  "publicApiSurface": [
+    "Java fundamentals (OOP, collections, multithreading)",
+    "JVM internals and garbage collection",
+    "Spring IoC and AOP concepts",
+    "MySQL query optimization and indexing",
+    "Algorithm templates (KMP, binary search, dynamic programming)",
+    "Data structures (trees, graphs, stacks, queues)",
+    "Redis data structures and operations",
+    "Docker containerization",
+    "Git version control workflows",
+    "MyBatis ORM framework",
+    "Distributed system patterns",
+    "System design patterns"
+  ]
+}
