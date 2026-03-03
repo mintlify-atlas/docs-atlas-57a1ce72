@@ -1,0 +1,369 @@
+---
+title: 'MySQL Fundamentals'
+description: 'Essential MySQL concepts including SQL basics, data types, and basic operations'
+icon: 'database'
+---
+
+## Database Overview
+
+MySQL is an open-source relational database management system (RDBMS) that uses Structured Query Language (SQL) for database operations.
+
+### Why Use Databases
+
+**Persistence**: Databases save data to non-volatile storage devices for long-term use. Most enterprise applications use relational databases to persist data from memory to disk.
+
+**Key Benefits**:
+- Data persistence across application restarts
+- Structured data organization
+- Efficient querying and retrieval
+- Data integrity and consistency
+
+## MySQL Architecture
+
+### Database Hierarchy
+
+```
+MySQL Server
+  └── Database
+        └── Table
+              └── Row & Column
+```
+
+<Tip>
+A MySQL server can manage multiple databases, and each database can contain multiple tables to store program entity data.
+</Tip>
+
+### Key Concepts
+
+| Term | Description |
+|------|-------------|
+| **DB (Database)** | A repository for storing organized data |
+| **DBMS** | Database Management System - software for managing databases |
+| **SQL** | Structured Query Language - language for communicating with databases |
+
+## Basic SQL Statements
+
+### SELECT Operations
+
+The most fundamental SQL operation is querying data:
+
+```sql
+-- Select all columns
+SELECT * FROM employees;
+
+-- Select specific columns
+SELECT employee_id, first_name, last_name FROM employees;
+
+-- With WHERE clause filtering
+SELECT employee_id, last_name FROM employees
+WHERE department_id = 90;
+```
+
+<Warning>
+Using `SELECT *` is not recommended in production as it:
+- Reduces query efficiency
+- Retrieves unnecessary columns
+- Increases network traffic
+</Warning>
+
+### Column Aliases
+
+Use aliases for better readability:
+
+```sql
+SELECT last_name AS name, commission_pct AS comm
+FROM employees;
+
+-- With spaces (use quotes)
+SELECT last_name "Employee Name", salary*12 "Annual Salary"
+FROM employees;
+```
+
+### Removing Duplicates
+
+```sql
+-- DISTINCT removes duplicate rows
+SELECT DISTINCT department_id FROM employees;
+
+-- Works on combination of all columns
+SELECT DISTINCT department_id, salary FROM employees;
+```
+
+## MySQL Data Types
+
+### Numeric Types
+
+| Type | Storage | Range | Use Case |
+|------|---------|-------|----------|
+| **TINYINT** | 1 byte | -128 to 127 | Small integers |
+| **INT** | 4 bytes | -2³¹ to 2³¹-1 | Standard integers |
+| **BIGINT** | 8 bytes | -2⁶³ to 2⁶³-1 | Large integers |
+| **DECIMAL(M,D)** | Variable | Precise decimals | Financial data |
+| **FLOAT** | 4 bytes | Approximate | Scientific calculations |
+| **DOUBLE** | 8 bytes | Approximate | High-precision floats |
+
+### String Types
+
+```sql
+-- Fixed-length string (max 255)
+CHAR(size)
+
+-- Variable-length string (max 65,535)
+VARCHAR(size) -- MUST specify length
+
+-- Text types for large content
+TEXT -- Up to 4GB
+LONGTEXT
+```
+
+### Date and Time Types
+
+| Type | Format | Range |
+|------|--------|-------|
+| **DATE** | YYYY-MM-DD | 1000-01-01 to 9999-12-31 |
+| **DATETIME** | YYYY-MM-DD HH:MM:SS | 1000-01-01 to 9999-12-31 |
+| **TIMESTAMP** | YYYY-MM-DD HH:MM:SS | 1970-01-01 to 2038-01-19 |
+| **TIME** | HH:MM:SS | -838:59:59 to 838:59:59 |
+
+## Table Operations
+
+### Creating Tables
+
+```sql
+CREATE TABLE IF NOT EXISTS employees (
+    emp_id INT PRIMARY KEY AUTO_INCREMENT,
+    emp_name VARCHAR(20) NOT NULL,
+    salary DOUBLE,
+    birthday DATE,
+    department_id INT
+);
+```
+
+<Info>
+**Best Practices**:
+- Use `IF NOT EXISTS` to avoid errors
+- Always define PRIMARY KEY
+- Use appropriate data types
+- Set NOT NULL where applicable
+</Info>
+
+### Modifying Tables
+
+```sql
+-- Add column
+ALTER TABLE employees ADD email VARCHAR(50);
+
+-- Modify column
+ALTER TABLE employees MODIFY salary DOUBLE(9,2) DEFAULT 1000;
+
+-- Rename column
+ALTER TABLE employees CHANGE COLUMN emp_name employee_name VARCHAR(30);
+
+-- Drop column
+ALTER TABLE employees DROP COLUMN email;
+```
+
+### Inserting Data
+
+```sql
+-- Insert single row
+INSERT INTO employees (emp_name, salary, birthday)
+VALUES ('Zhang San', 8000, '1990-01-01');
+
+-- Insert multiple rows
+INSERT INTO employees (emp_name, salary, birthday) VALUES
+('Li Si', 9000, '1988-05-15'),
+('Wang Wu', 7500, '1992-08-20');
+```
+
+### Updating Data
+
+```sql
+-- Update with WHERE clause
+UPDATE employees
+SET salary = salary * 1.1
+WHERE department_id = 10;
+
+-- Update multiple columns
+UPDATE employees
+SET salary = 10000, department_id = 20
+WHERE emp_id = 101;
+```
+
+<Warning>
+Always use WHERE clause with UPDATE, or you'll update ALL rows!
+</Warning>
+
+### Deleting Data
+
+```sql
+-- Delete specific rows
+DELETE FROM employees WHERE emp_id = 101;
+
+-- TRUNCATE - faster but can't rollback
+TRUNCATE TABLE employees;
+```
+
+## Multi-Table Queries
+
+### Inner Join
+
+```sql
+-- SQL99 syntax (recommended)
+SELECT e.employee_id, e.last_name, d.department_name
+FROM employees e
+INNER JOIN departments d
+ON e.department_id = d.department_id;
+
+-- SQL92 syntax
+SELECT e.employee_id, e.last_name, d.department_name
+FROM employees e, departments d
+WHERE e.department_id = d.department_id;
+```
+
+### Outer Joins
+
+```sql
+-- LEFT JOIN - returns all from left table
+SELECT e.last_name, d.department_name
+FROM employees e
+LEFT JOIN departments d
+ON e.department_id = d.department_id;
+
+-- RIGHT JOIN - returns all from right table
+SELECT e.last_name, d.department_name
+FROM employees e
+RIGHT JOIN departments d
+ON e.department_id = d.department_id;
+```
+
+<CardGroup cols={2}>
+  <Card title="Join Best Practices" icon="link">
+    - Use table aliases for readability
+    - Always specify join conditions
+    - Limit joins to necessary tables
+    - Consider performance with large tables
+  </Card>
+  
+  <Card title="Join Rules" icon="circle-info">
+    - n tables require n-1 join conditions
+    - Use INNER JOIN for matching records
+    - Use LEFT/RIGHT JOIN for all records
+    - Avoid Cartesian products
+  </Card>
+</CardGroup>
+
+## Query Performance Tips
+
+### Use EXPLAIN
+
+```sql
+EXPLAIN SELECT * FROM employees WHERE salary > 8000;
+```
+
+The EXPLAIN output helps identify:
+- Query execution plan
+- Index usage
+- Rows examined
+- Join type
+
+### Create Indexes
+
+```sql
+-- Create index on frequently queried columns
+CREATE INDEX idx_salary ON employees(salary);
+
+-- Composite index for multiple columns
+CREATE INDEX idx_dept_salary ON employees(department_id, salary);
+```
+
+<Tip>
+**When to Create Indexes**:
+- Columns in WHERE clauses
+- Columns in JOIN conditions
+- Columns in ORDER BY
+- Foreign key columns
+</Tip>
+
+## Common Operations
+
+### Aggregation Functions
+
+```sql
+-- COUNT, SUM, AVG, MAX, MIN
+SELECT 
+    COUNT(*) as total_employees,
+    AVG(salary) as avg_salary,
+    MAX(salary) as max_salary,
+    MIN(salary) as min_salary
+FROM employees;
+
+-- GROUP BY
+SELECT department_id, COUNT(*) as emp_count, AVG(salary)
+FROM employees
+GROUP BY department_id
+HAVING COUNT(*) > 5;
+```
+
+### String Functions
+
+```sql
+-- Common string operations
+SELECT 
+    CONCAT(first_name, ' ', last_name) AS full_name,
+    UPPER(last_name) AS upper_name,
+    LENGTH(last_name) AS name_length,
+    SUBSTRING(email, 1, 3) AS email_prefix
+FROM employees;
+```
+
+### Date Functions
+
+```sql
+-- Date manipulation
+SELECT
+    NOW() AS current_datetime,
+    CURDATE() AS current_date,
+    DATE_FORMAT(hire_date, '%Y-%m-%d') AS formatted_date,
+    DATEDIFF(NOW(), hire_date) AS days_employed
+FROM employees;
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Naming Conventions">
+    - Use lowercase for table and column names
+    - Use underscores for multi-word names
+    - Avoid reserved keywords
+    - Keep names descriptive but concise
+  </Accordion>
+  
+  <Accordion title="Query Optimization">
+    - Select only needed columns
+    - Use appropriate indexes
+    - Avoid SELECT * in production
+    - Use LIMIT for large result sets
+    - Monitor slow queries
+  </Accordion>
+  
+  <Accordion title="Data Integrity">
+    - Define PRIMARY KEY on all tables
+    - Use FOREIGN KEY constraints
+    - Set appropriate NOT NULL constraints
+    - Use CHECK constraints when needed
+    - Implement proper transaction handling
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="MySQL Advanced" icon="graduation-cap" href="/topics/databases/mysql-advanced">
+    Learn about indexes, optimization, and transactions
+  </Card>
+  
+  <Card title="Redis Basics" icon="bolt" href="/topics/databases/redis">
+    Explore in-memory data structures and caching
+  </Card>
+</CardGroup>

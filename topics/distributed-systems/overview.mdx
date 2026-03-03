@@ -1,0 +1,225 @@
+---
+title: Distributed Systems Overview
+description: Understanding distributed systems architecture, CAP theorem, and key concepts for building scalable applications
+---
+
+Distributed systems are fundamental to modern software architecture, enabling applications to scale across multiple servers and handle high-concurrency workloads. This guide covers essential concepts and patterns.
+
+## What is a Distributed System?
+
+A distributed system consists of multiple independent components that communicate over a network to achieve a common goal. In microservices architecture, these components include:
+
+- **Service Providers**: Applications that offer services to other components
+- **Service Consumers**: Applications that consume services from providers
+- **Service Registry**: A central repository that maintains service information (IP addresses, ports, service names)
+
+```mermaid
+graph LR
+    A[Service Provider] -->|Register| B[Service Registry]
+    C[Service Consumer] -->|Discover| B
+    C -->|Call| A
+```
+
+## CAP Theorem
+
+The CAP theorem states that distributed systems can only guarantee two of three properties simultaneously:
+
+<CardGroup cols={3}>
+  <Card title="Consistency" icon="check">
+    All nodes see the same data at the same time
+  </Card>
+  
+  <Card title="Availability" icon="clock">
+    Every request receives a response (success or failure)
+  </Card>
+  
+  <Card title="Partition Tolerance" icon="network-wired">
+    System continues operating despite network failures
+  </Card>
+</CardGroup>
+
+### CAP Trade-offs in Practice
+
+<AccordionGroup>
+  <Accordion title="CP Systems (Consistency + Partition Tolerance)">
+    **Example**: ZooKeeper
+    
+    - Prioritizes data consistency over availability
+    - During leader election (30-120 seconds), the cluster becomes unavailable
+    - Best for: Distributed coordination, configuration management
+    - Trade-off: Sacrifices availability during network partitions
+  </Accordion>
+  
+  <Accordion title="AP Systems (Availability + Partition Tolerance)">
+    **Example**: Eureka
+    
+    - Prioritizes availability over strict consistency
+    - All nodes can serve requests even during network issues
+    - Data synchronization happens asynchronously
+    - Best for: Service discovery in microservices
+    - Trade-off: Eventual consistency, possible stale data
+  </Accordion>
+  
+  <Accordion title="CA Systems (Consistency + Availability)">
+    **Reality**: Not practical in distributed environments
+    
+    - Cannot tolerate network partitions
+    - Only feasible in single-node systems
+    - Not suitable for distributed architectures
+  </Accordion>
+</AccordionGroup>
+
+## Key Architecture Components
+
+### Service Registry Pattern
+
+The service registry acts as a phone book for microservices:
+
+1. **Service Registration**: Providers register their location and metadata
+2. **Service Discovery**: Consumers query the registry to find available services
+3. **Health Monitoring**: Registry tracks service health and availability
+4. **Load Distribution**: Enables client-side or server-side load balancing
+
+<Card title="Design Consideration" icon="lightbulb">
+  **When to use service discovery?**
+  
+  Service registries are essential when:
+  - You have dynamic service instances (auto-scaling)
+  - Services frequently change locations
+  - You need automatic failover capabilities
+  - Multiple service versions coexist
+</Card>
+
+### Communication Patterns
+
+<CardGroup cols={2}>
+  <Card title="Synchronous Communication" icon="arrow-right">
+    **Pattern**: REST, gRPC
+    
+    **Pros**:
+    - Simple request/response model
+    - Immediate feedback
+    - Easy to debug
+    
+    **Cons**:
+    - Tight coupling
+    - Cascading failures
+    - Higher latency
+  </Card>
+  
+  <Card title="Asynchronous Communication" icon="message">
+    **Pattern**: Message queues, Event streams
+    
+    **Pros**:
+    - Loose coupling
+    - Better fault tolerance
+    - Traffic smoothing
+    
+    **Cons**:
+    - Increased complexity
+    - Eventual consistency
+    - Harder to debug
+  </Card>
+</CardGroup>
+
+## Design Considerations
+
+### Network Reliability
+
+<Warning>
+  Networks are inherently unreliable. Design for failure:
+  - Implement retry mechanisms with exponential backoff
+  - Use circuit breakers to prevent cascade failures
+  - Set appropriate timeouts for all network calls
+  - Cache service discovery results locally
+</Warning>
+
+### Data Consistency Strategies
+
+<Steps>
+  <Step title="Identify consistency requirements">
+    Determine which operations require strong consistency vs. eventual consistency
+  </Step>
+  
+  <Step title="Choose appropriate patterns">
+    - Strong consistency: Use distributed transactions (2PC, Saga)
+    - Eventual consistency: Use event sourcing, CQRS
+  </Step>
+  
+  <Step title="Handle conflicts">
+    Implement conflict resolution strategies (last-write-wins, version vectors, CRDTs)
+  </Step>
+</Steps>
+
+### Scalability Patterns
+
+| Pattern | Use Case | Trade-offs |
+|---------|----------|------------|
+| **Horizontal Scaling** | Stateless services | Requires load balancing, session management |
+| **Vertical Scaling** | Stateful services, databases | Hardware limits, single point of failure |
+| **Sharding** | Large datasets | Increased complexity, cross-shard queries |
+| **Replication** | Read-heavy workloads | Data consistency challenges |
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Design for Failure" icon="shield">
+    - Assume any component can fail
+    - Implement health checks
+    - Use bulkheads to isolate failures
+    - Plan for graceful degradation
+  </Card>
+  
+  <Card title="Monitor Everything" icon="chart-line">
+    - Track service health metrics
+    - Log distributed traces
+    - Set up alerting for anomalies
+    - Monitor network latency
+  </Card>
+  
+  <Card title="Keep Services Focused" icon="bullseye">
+    - Single responsibility principle
+    - Clear service boundaries
+    - Minimize inter-service dependencies
+    - Version APIs carefully
+  </Card>
+  
+  <Card title="Automate Operations" icon="robot">
+    - Auto-scaling based on metrics
+    - Automated deployment pipelines
+    - Self-healing infrastructure
+    - Automated testing at all levels
+  </Card>
+</CardGroup>
+
+## Common Pitfalls
+
+<Warning>
+  **Avoid these common mistakes:**
+  
+  1. **Over-engineering**: Don't build distributed systems when a monolith suffices
+  2. **Ignoring latency**: Network calls are 100-1000x slower than local calls
+  3. **Assuming reliability**: Always plan for network failures and service outages
+  4. **Shared databases**: Avoid tight coupling through shared data stores
+  5. **Synchronous chains**: Long chains of synchronous calls amplify failures
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Service Discovery" href="/topics/distributed-systems/service-discovery" icon="compass">
+    Learn about service registration and discovery patterns
+  </Card>
+  
+  <Card title="Load Balancing" href="/topics/system-design/load-balancing" icon="scale-balanced">
+    Explore load balancing strategies and implementations
+  </Card>
+  
+  <Card title="Message Queues" href="/topics/system-design/message-queue" icon="inbox">
+    Understand asynchronous messaging patterns
+  </Card>
+  
+  <Card title="System Design Patterns" href="/topics/system-design" icon="diagram-project">
+    Browse all system design topics
+  </Card>
+</CardGroup>

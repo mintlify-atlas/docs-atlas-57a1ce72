@@ -1,0 +1,544 @@
+---
+title: 'Linux Basics'
+description: 'Essential Linux commands and system administration fundamentals'
+---
+
+## Linux Fundamentals
+
+Linux is a multi-user operating system where everything is treated as a file. Understanding file permissions, directory structure, and basic commands is essential for any developer.
+
+### System Directory Structure
+
+Linux organizes everything under the root directory `/`. Key directories include:
+
+- `/bin` - Essential command binaries (ls, cat, etc.)
+- `/boot` - Boot loader files and kernel images
+- `/dev` - Device files
+- `/etc` - System configuration files
+- `/home` - User home directories
+- `/lib` - Shared libraries
+- `/opt` - Optional software packages
+- `/root` - Root user home directory
+- `/tmp` - Temporary files
+- `/usr` - User programs and data
+- `/var` - Variable data (logs, databases)
+
+### File Permissions
+
+Linux file permissions consist of read (r), write (w), and execute (x) for three categories:
+
+- **Owner (u)** - File owner
+- **Group (g)** - File group members
+- **Others (o)** - Everyone else
+
+View permissions with `ls -l`:
+
+```bash
+-rw-r--r-- 1 root root  13 Mar  8 15:48 file.txt
+drwxr-xr-x 5 root root 4096 Sep 7 19:52 directory
+```
+
+The first character indicates file type:
+- `d` = directory
+- `-` = regular file
+- `l` = symbolic link
+
+#### Permission Numbers
+
+Permissions can be represented numerically:
+- Read (r) = 4
+- Write (w) = 2
+- Execute (x) = 1
+
+```bash
+# rwx = 4+2+1 = 7
+# rw- = 4+2+0 = 6
+# r-- = 4+0+0 = 4
+
+chmod 755 script.sh  # rwxr-xr-x
+chmod 644 file.txt   # rw-r--r--
+```
+
+### Changing File Ownership
+
+```bash
+# Change owner
+chown username file.txt
+
+# Change owner and group
+chown username:groupname file.txt
+
+# Change recursively
+chown -R username:groupname /directory
+
+# Change group only
+chgrp groupname file.txt
+```
+
+## Essential Commands
+
+### File Operations
+
+#### Viewing Files
+
+```bash
+# Display entire file
+cat file.txt
+
+# View with line numbers
+cat -n file.txt
+
+# Concatenate multiple files
+cat file1.txt file2.txt > combined.txt
+
+# Append to file
+cat file1.txt >> file2.txt
+```
+
+#### Paging Through Files
+
+```bash
+# Page through file (space = next page, q = quit)
+more filename
+
+# Advanced paging (allows backward navigation)
+less filename
+# In less: space=forward, b=backward, /pattern=search, q=quit
+```
+
+#### Viewing File Portions
+
+```bash
+# First 10 lines
+head file.txt
+
+# First 20 lines
+head -n 20 file.txt
+
+# Last 10 lines
+tail file.txt
+
+# Last 20 lines
+tail -n 20 file.txt
+
+# Follow file updates (useful for logs)
+tail -f /var/log/application.log
+
+# Start from line 10
+tail -n +10 file.txt
+```
+
+### Directory Management
+
+```bash
+# Create directory
+mkdir directory_name
+
+# Create nested directories
+mkdir -p parent/child/grandchild
+
+# Remove empty directory
+rmdir directory_name
+
+# Remove directory and contents
+rm -r directory_name
+
+# Force remove without confirmation
+rm -rf directory_name
+```
+
+### File and Directory Operations
+
+```bash
+# Copy file
+cp source.txt destination.txt
+
+# Copy directory recursively
+cp -r source_dir/ destination_dir/
+
+# Move/rename file
+mv oldname.txt newname.txt
+
+# Move to directory
+mv file.txt /path/to/directory/
+
+# Move directory
+mv old_dir/ new_location/
+```
+
+### Searching
+
+#### Find Files
+
+```bash
+# Find by name
+find . -name "*.java"
+
+# Find in specific directory
+find /home/user -name "*.conf"
+
+# Find by type (f=file, d=directory)
+find . -type f -name "*.log"
+```
+
+#### Search File Contents
+
+```bash
+# Search for text in file
+grep "pattern" file.txt
+
+# Case-insensitive search
+grep -i "pattern" file.txt
+
+# Search all files in directory
+grep -r "pattern" /path/to/dir
+
+# Show line numbers
+grep -n "pattern" file.txt
+
+# Search multiple files
+grep "error" *.log
+```
+
+### Archive and Compression
+
+```bash
+# Create tar archive
+tar -cvf archive.tar files/
+
+# Create compressed archive
+tar -zcvf archive.tar.gz files/
+
+# Extract tar archive
+tar -xvf archive.tar
+
+# Extract to specific directory
+tar -xvf archive.tar -C /destination/
+
+# Extract compressed archive
+tar -zxvf archive.tar.gz
+
+# List archive contents
+tar -tvf archive.tar
+```
+
+Flags explained:
+- `-z` - gzip compression
+- `-c` - create archive
+- `-x` - extract archive
+- `-v` - verbose output
+- `-f` - specify filename
+
+## System Information
+
+### CPU Information
+
+```bash
+# Display CPU details
+lscpu
+
+# Check CPU count
+grep 'model name' /proc/cpuinfo | wc -l
+```
+
+### System Load
+
+```bash
+# Show uptime and load average
+uptime
+
+# Current users and load
+w
+```
+
+### Disk Usage
+
+```bash
+# Disk space usage
+df -h
+
+# Directory size
+du -sh /path/to/directory
+
+# Show all subdirectory sizes
+du -h --max-depth=1 /path/to/directory
+```
+
+## Process Management
+
+### Viewing Processes
+
+```bash
+# List all processes
+ps aux
+
+# Filter processes
+ps aux | grep java
+
+# View process tree
+ps -ef
+pstree -p
+
+# Interactive process viewer
+top
+
+# Enhanced system monitor
+htop
+```
+
+### Managing Processes
+
+```bash
+# Kill process by PID
+kill 1234
+
+# Force kill process
+kill -9 1234
+
+# Kill by process name
+killall process_name
+
+# Background process
+command &
+
+# Run without hangup
+nohup java -jar application.jar &
+
+# Redirect output
+nohup java -jar app.jar > app.log 2>&1 &
+```
+
+## Link Management
+
+### Hard Links vs Symbolic Links
+
+**Hard Link**: Multiple names for the same file (same inode)
+**Symbolic Link**: Shortcut pointing to another file (different inode)
+
+```bash
+# Create hard link
+ln original.txt hardlink.txt
+
+# Create symbolic link
+ln -s /path/to/original.txt symlink.txt
+
+# Create symbolic link to directory
+ln -s /home/user/project shortcut
+
+# Remove symbolic link
+unlink symlink.txt
+# or
+rm symlink.txt
+
+# View links
+ls -li  # Shows inode numbers
+```
+
+## Network Commands
+
+```bash
+# Show IP address
+ip addr
+
+# Test connectivity
+ping google.com
+
+# Show network statistics
+netstat -tuln
+
+# Download file
+wget https://example.com/file.zip
+curl -O https://example.com/file.zip
+```
+
+## System Control
+
+### Shutdown and Reboot
+
+```bash
+# Sync data to disk
+sync
+
+# Shutdown now
+shutdown -h now
+
+# Shutdown in 10 minutes
+shutdown -h +10
+
+# Shutdown at specific time
+shutdown -h 20:30
+
+# Reboot
+reboot
+shutdown -r now
+
+# Cancel scheduled shutdown
+shutdown -c
+```
+
+### Service Management (systemd)
+
+```bash
+# Start service
+systemctl start service_name
+
+# Stop service
+systemctl stop service_name
+
+# Restart service
+systemctl restart service_name
+
+# Check service status
+systemctl status service_name
+
+# Enable service at boot
+systemctl enable service_name
+
+# Disable service at boot
+systemctl disable service_name
+```
+
+## Scheduled Tasks
+
+### Crontab
+
+Cron format: `minute hour day month weekday command`
+
+```bash
+# Edit crontab
+crontab -e
+
+# List crontab entries
+crontab -l
+
+# Remove crontab
+crontab -r
+```
+
+Common patterns:
+
+```bash
+# Every minute
+* * * * * /path/to/command
+
+# Every hour
+0 * * * * /path/to/command
+
+# Every day at midnight
+0 0 * * * /path/to/command
+
+# Every Sunday
+0 0 * * 0 /path/to/command
+
+# Every month (1st day)
+0 0 1 * * /path/to/command
+
+# Weekdays at 5 PM
+0 17 * * 1-5 /path/to/command
+```
+
+## Shell Redirection
+
+```bash
+# Redirect stdout to file (overwrite)
+command > output.txt
+
+# Redirect stdout to file (append)
+command >> output.txt
+
+# Redirect stderr to file
+command 2> error.txt
+
+# Redirect both stdout and stderr
+command > output.txt 2>&1
+command &> output.txt
+
+# Redirect stdin from file
+command < input.txt
+
+# Pipe output to another command
+command1 | command2
+```
+
+## Environment Variables
+
+```bash
+# View environment variable
+echo $PATH
+echo $HOME
+
+# Set environment variable
+export JAVA_HOME=/usr/lib/jvm/java-11
+
+# Add to PATH
+export PATH=$PATH:/new/path
+
+# View all environment variables
+env
+printenv
+```
+
+## Useful Tips
+
+### Command History
+
+```bash
+# View command history
+history
+
+# View last 10 commands
+history 10
+
+# Execute command from history
+!123  # Execute command number 123
+!!    # Execute previous command
+```
+
+### File Statistics
+
+```bash
+# Count lines, words, characters
+wc file.txt
+
+# Count lines only
+wc -l file.txt
+
+# Count words only
+wc -w file.txt
+```
+
+### Text Processing
+
+```bash
+# Display text
+echo "Hello World"
+
+# Clear file contents
+echo > file.txt
+: > file.txt
+
+# Create/update file
+cat > file.txt << EOF
+Line 1
+Line 2
+EOF
+```
+
+## Best Practices
+
+1. **Always use `sync` before shutdown** to ensure data is written to disk
+2. **Be careful with `rm -rf`** - there's no undo
+3. **Use tab completion** to avoid typos and speed up command entry
+4. **Check current directory** before running destructive commands
+5. **Use `less` instead of `cat`** for large files
+6. **Quote file paths with spaces** - `rm "my file.txt"`
+7. **Test commands with `echo`** before execution in scripts
+8. **Use `man` command** to read command documentation
+
+## Common Pitfalls
+
+- Forgetting to use `sudo` for privileged operations
+- Not backing up before modifying system files
+- Using `kill -9` as first resort instead of graceful shutdown
+- Not checking if a process is still running before restart
+- Editing files directly in `/etc` without backups

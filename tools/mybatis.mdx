@@ -1,0 +1,673 @@
+---
+title: MyBatis ORM 框架
+description: MyBatis持久层框架的配置、CRUD操作、动态SQL和最佳实践
+---
+
+## MyBatis 简介
+
+MyBatis 是一款优秀的持久层框架,它支持自定义 SQL、存储过程以及高级映射。MyBatis 免除了几乎所有的 JDBC 代码以及设置参数和获取结果集的工作。
+
+### 获取 MyBatis
+
+**Maven 依赖:**
+
+```xml
+<dependency>
+    <groupId>org.mybatis</groupId>
+    <artifactId>mybatis</artifactId>
+    <version>3.5.9</version>
+</dependency>
+```
+
+**GitHub:** https://github.com/mybatis/mybatis-3/releases
+
+### 为什么使用 MyBatis?
+
+<CardGroup cols={2}>
+  <Card title="简单易学" icon="graduation-cap">
+    本身很小且简单,没有任何第三方依赖,易于学习和使用。
+  </Card>
+  
+  <Card title="灵活" icon="wand-magic-sparkles">
+    SQL 写在 XML 里,便于统一管理和优化,可以满足所有数据库操作需求。
+  </Card>
+  
+  <Card title="解耦" icon="link-slash">
+    通过 DAO 层分离业务逻辑和数据访问逻辑,提高可维护性。
+  </Card>
+  
+  <Card title="强大的映射" icon="diagram-project">
+    提供映射标签,支持对象与数据库的 ORM 字段关系映射。
+  </Card>
+</CardGroup>
+
+## 快速开始
+
+### 开发流程
+
+<Steps>
+  <Step title="引入依赖">
+    在 pom.xml 中添加 MyBatis 和数据库驱动依赖。
+  </Step>
+  
+  <Step title="创建配置文件">
+    创建 mybatis-config.xml 核心配置文件。
+  </Step>
+  
+  <Step title="创建实体类">
+    创建与数据库表对应的 POJO 类。
+  </Step>
+  
+  <Step title="创建 Mapper">
+    创建 Mapper 接口和 XML 映射文件。
+  </Step>
+  
+  <Step title="初始化 SessionFactory">
+    创建 SqlSessionFactory 工具类。
+  </Step>
+  
+  <Step title="执行操作">
+    创建 SqlSession 对象执行数据库操作。
+  </Step>
+</Steps>
+
+### 核心配置文件
+
+**mybatis-config.xml:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+    PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <!-- 环境配置 -->
+    <environments default="development">
+        <environment id="development">
+            <!-- 事务管理 -->
+            <transactionManager type="JDBC"/>
+            <!-- 数据源配置 -->
+            <dataSource type="POOLED">
+                <property name="driver" value="com.mysql.cj.jdbc.Driver"/>
+                <property name="url" value="jdbc:mysql://localhost:3306/mybatis?characterEncoding=utf8&amp;useSSL=false&amp;serverTimezone=UTC"/>
+                <property name="username" value="root"/>
+                <property name="password" value="root"/>
+            </dataSource>
+        </environment>
+    </environments>
+    
+    <!-- Mapper 映射 -->
+    <mappers>
+        <mapper resource="mappers/UserMapper.xml"/>
+    </mappers>
+</configuration>
+```
+
+<Note>
+  `dataSource` 的 `type="POOLED"` 表示使用连接池,`sqlSession.close()` 时会将连接放回连接池而不是关闭。
+</Note>
+
+### 创建工具类
+
+**MyBatisUtils.java:**
+
+```java
+public class MyBatisUtils {
+    private static SqlSessionFactory sqlSessionFactory = null;
+    
+    // 静态代码块初始化
+    static {
+        try {
+            Reader reader = Resources.getResourceAsReader("mybatis-config.xml");
+            sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new ExceptionInInitializerError(e);
+        }
+    }
+    
+    // 获取 SqlSession
+    public static SqlSession getSqlSession() {
+        return sqlSessionFactory.openSession();
+    }
+    
+    // 关闭 SqlSession
+    public static void closeSession(SqlSession sqlSession) {
+        if (sqlSession != null) {
+            sqlSession.close();
+        }
+    }
+}
+```
+
+### 实体类
+
+```java
+public class User {
+    private Integer id;
+    private String name;
+    private String password;
+    
+    // Getter and Setter
+    // toString()
+}
+```
+
+### Mapper 映射文件
+
+**UserMapper.xml:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="UserMapper">
+    <select id="selectAll" resultType="User">
+        SELECT * FROM user
+    </select>
+    
+    <select id="selectById" parameterType="Integer" resultType="User">
+        SELECT * FROM user WHERE id = #{id}
+    </select>
+</mapper>
+```
+
+### 测试代码
+
+```java
+@Test
+public void test() {
+    SqlSession sqlSession = null;
+    try {
+        sqlSession = MyBatisUtils.getSqlSession();
+        List<User> users = sqlSession.selectList("UserMapper.selectAll");
+        for (User user : users) {
+            System.out.println(user);
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+    } finally {
+        MyBatisUtils.closeSession(sqlSession);
+    }
+}
+```
+
+## CRUD 操作
+
+### 查询操作
+
+**查询所有:**
+
+```xml
+<select id="selectAll" resultType="User">
+    SELECT * FROM user
+</select>
+```
+
+**根据 ID 查询:**
+
+```xml
+<select id="selectById" parameterType="Integer" resultType="User">
+    SELECT * FROM user WHERE id = #{id}
+</select>
+```
+
+### 插入操作
+
+```xml
+<insert id="insert" parameterType="User">
+    INSERT INTO user(name, password)
+    VALUES (#{name}, #{password})
+    
+    <!-- 返回插入的主键ID -->
+    <selectKey resultType="Integer" keyProperty="id" order="AFTER">
+        SELECT LAST_INSERT_ID()
+    </selectKey>
+</insert>
+```
+
+使用:
+
+```java
+User user = new User();
+user.setName("test");
+user.setPassword("123456");
+int count = sqlSession.insert("UserMapper.insert", user);
+sqlSession.commit();
+System.out.println("插入的ID: " + user.getId());
+```
+
+<Warning>
+  增删改操作需要提交事务: `sqlSession.commit()`
+</Warning>
+
+### 更新操作
+
+```xml
+<update id="updateUser" parameterType="User">
+    UPDATE user
+    SET name = #{name}, password = #{password}
+    WHERE id = #{id}
+</update>
+```
+
+### 删除操作
+
+```xml
+<delete id="deleteUser" parameterType="int">
+    DELETE FROM user WHERE id = #{id}
+</delete>
+```
+
+## 参数传递
+
+### 使用 Map 传递参数
+
+当实体类参数过多时,可以使用 Map:
+
+```xml
+<insert id="insert" parameterType="java.util.Map">
+    INSERT INTO user (id, name, password)
+    VALUES (#{id}, #{name}, #{password})
+</insert>
+```
+
+调用:
+
+```java
+Map<String, Object> param = new HashMap<>();
+param.put("id", 8);
+param.put("name", "aaa");
+param.put("password", "1212121");
+sqlSession.insert("UserMapper.insert", param);
+sqlSession.commit();
+```
+
+### 参数规则
+
+- Map 取 key: `parameterType="map"`
+- 对象取属性名: `parameterType="Object"`
+- 基本类型可以随便写,可省略 parameterType
+- 多个参数用 Map 或注解
+
+### Map 作为结果集
+
+```xml
+<select id="selectAllMap" resultType="java.util.LinkedHashMap">
+    SELECT * FROM user
+</select>
+```
+
+<Tip>
+  使用 `LinkedHashMap` 可以保持字段的插入顺序,HashMap 会按 hash 值排序。
+</Tip>
+
+## ResultMap
+
+ResultMap 用于复杂的结果映射,特别是字段名与属性名不一致时。
+
+### 基本用法
+
+```xml
+<resultMap id="rmUser" type="User">
+    <id property="id" column="id"/>
+    <result property="name" column="user_name"/>
+    <result property="password" column="user_password"/>
+</resultMap>
+
+<select id="selectAllMap" resultMap="rmUser">
+    SELECT id, user_name, user_password FROM user
+</select>
+```
+
+### ResultMap 元素
+
+- `id`: 主键映射
+- `result`: 普通字段映射
+- `association`: 一对一关联
+- `collection`: 一对多关联
+- `discriminator`: 鉴别器映射
+
+## 批量操作
+
+### 批量插入
+
+```xml
+<insert id="batchInsert" parameterType="java.util.List">
+    INSERT INTO blog VALUES
+    <foreach collection="list" item="item" index="index" separator=",">
+        (#{item.id}, #{item.title}, #{item.author}, #{item.createTime}, #{item.views})
+    </foreach>
+</insert>
+```
+
+使用:
+
+```java
+List<Blog> blogs = new ArrayList<>();
+for (int i = 0; i < 5; i++) {
+    Blog blog = new Blog();
+    blog.setId(i + 1);
+    blog.setTitle("测试" + i);
+    blogs.add(blog);
+}
+sqlSession.insert("BlogMapper.batchInsert", blogs);
+sqlSession.commit();
+```
+
+<Note>
+  批量插入速度最快,但不能获得插入数据的 ID,且 SQL 太长可能被服务器拒绝。
+</Note>
+
+## SQL 注入防护
+
+### #{} vs ${}
+
+**#{}** (推荐):
+- 解析为 JDBC 预编译语句的参数标记符 `?`
+- 预编译处理,防止 SQL 注入
+- 变量替换在 DBMS 中进行
+
+```xml
+<select id="selectByName" parameterType="String" resultType="User">
+    SELECT * FROM user WHERE name = #{name}
+</select>
+```
+
+解析为: `SELECT * FROM user WHERE name = ?`
+
+**${}**:
+- 纯字符串替换
+- 动态 SQL 解析阶段进行变量替换
+- 存在 SQL 注入风险
+
+```xml
+<select id="selectByName" parameterType="String" resultType="User">
+    SELECT * FROM user WHERE name = '${name}'
+</select>
+```
+
+当 name = `"'; DROP TABLE user; --"` 时会导致 SQL 注入!
+
+### 使用建议
+
+<Warning>
+  能使用 #{} 的地方就用 #{},只有在表名、字段名等无法使用预编译的地方才使用 ${}。
+</Warning>
+
+**必须使用 ${} 的情况:**
+
+```xml
+<!-- 表名作为变量 -->
+<select id="selectFromTable" parameterType="String" resultType="Map">
+    SELECT * FROM ${tableName}
+</select>
+```
+
+## 配置详解
+
+### 属性配置
+
+**引入外部配置文件:**
+
+```xml
+<properties resource="db.properties"/>
+```
+
+**db.properties:**
+
+```properties
+driver=com.mysql.cj.jdbc.Driver
+url=jdbc:mysql://localhost:3306/mybatis
+username=root
+password=root
+```
+
+使用:
+
+```xml
+<dataSource type="POOLED">
+    <property name="driver" value="${driver}"/>
+    <property name="url" value="${url}"/>
+    <property name="username" value="${username}"/>
+    <property name="password" value="${password}"/>
+</dataSource>
+```
+
+### 类型别名
+
+**单个配置:**
+
+```xml
+<typeAliases>
+    <typeAlias type="com.example.pojo.User" alias="User"/>
+</typeAliases>
+```
+
+**包扫描:**
+
+```xml
+<typeAliases>
+    <package name="com.example.pojo"/>
+</typeAliases>
+```
+
+**使用注解:**
+
+```java
+@Alias("User")
+public class User {
+    // ...
+}
+```
+
+### 设置
+
+常用设置:
+
+```xml
+<settings>
+    <!-- 开启驼峰命名映射 -->
+    <setting name="mapUnderscoreToCamelCase" value="true"/>
+    <!-- 开启二级缓存 -->
+    <setting name="cacheEnabled" value="true"/>
+    <!-- 延迟加载 -->
+    <setting name="lazyLoadingEnabled" value="true"/>
+</settings>
+```
+
+### Mapper 注册
+
+<Tabs>
+  <Tab title="相对路径">
+    ```xml
+    <mappers>
+        <mapper resource="mappers/UserMapper.xml"/>
+    </mappers>
+    ```
+  </Tab>
+  
+  <Tab title="接口类名">
+    ```xml
+    <mappers>
+        <mapper class="com.example.mapper.UserMapper"/>
+    </mappers>
+    ```
+  </Tab>
+  
+  <Tab title="包扫描">
+    ```xml
+    <mappers>
+        <package name="com.example.mapper"/>
+    </mappers>
+    ```
+  </Tab>
+</Tabs>
+
+## 日志配置
+
+### Logback 配置
+
+**添加依赖:**
+
+```xml
+<dependency>
+    <groupId>ch.qos.logback</groupId>
+    <artifactId>logback-classic</artifactId>
+    <version>1.2.7</version>
+</dependency>
+```
+
+**logback.xml:**
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>
+                [%thread] %d{HH:mm:ss.SSS} %-5level %logger{10} - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+    
+    <!-- 日志级别: error > warn > info > debug > trace -->
+    <root level="debug">
+        <appender-ref ref="console"/>
+    </root>
+</configuration>
+```
+
+### MyBatis 日志设置
+
+**标准日志:**
+
+```xml
+<settings>
+    <setting name="logImpl" value="STDOUT_LOGGING"/>
+</settings>
+```
+
+**SLF4J:**
+
+```xml
+<settings>
+    <setting name="logImpl" value="SLF4J"/>
+</settings>
+```
+
+## 作用域和生命周期
+
+### SqlSessionFactoryBuilder
+
+- 一旦创建了 SqlSessionFactory 就不再需要
+- 应该是局部变量
+
+### SqlSessionFactory
+
+- 一旦被创建就应该在应用运行期间一直存在
+- 使用单例模式或静态单例模式
+- 最佳作用域是应用作用域
+
+### SqlSession
+
+- 连接到数据库的一个线程
+- 不是线程安全的,不能被共享
+- 最佳作用域是请求或方法作用域
+- 用完必须关闭,建议放在 finally 块中
+
+## 连接池配置
+
+### 配置 C3P0
+
+**添加依赖:**
+
+```xml
+<dependency>
+    <groupId>com.mchange</groupId>
+    <artifactId>c3p0</artifactId>
+    <version>0.9.5.5</version>
+</dependency>
+```
+
+**自定义数据源工厂:**
+
+```java
+public class C3P0DataSourceFactory extends UnpooledDataSourceFactory {
+    public C3P0DataSourceFactory() {
+        this.dataSource = new ComboPooledDataSource();
+    }
+}
+```
+
+**配置:**
+
+```xml
+<dataSource type="com.example.datasource.C3P0DataSourceFactory">
+    <property name="driverClass" value="com.mysql.cj.jdbc.Driver"/>
+    <property name="jdbcUrl" value="jdbc:mysql://localhost:3306/mybatis"/>
+    <property name="user" value="root"/>
+    <property name="password" value="root"/>
+    <property name="initialPoolSize" value="5"/>
+</dataSource>
+```
+
+## 最佳实践
+
+<CardGroup cols={2}>
+  <Card title="使用接口方式" icon="code">
+    推荐使用 Mapper 接口方式,而不是命名空间字符串调用。
+  </Card>
+  
+  <Card title="合理使用缓存" icon="database">
+    根据业务需求合理配置一级和二级缓存。
+  </Card>
+  
+  <Card title="防止 SQL 注入" icon="shield">
+    优先使用 #{} 进行参数绑定,避免使用 ${}。
+  </Card>
+  
+  <Card title="规范命名" icon="signature">
+    Mapper 接口和 XML 文件名称保持一致,便于维护。
+  </Card>
+</CardGroup>
+
+## 常见问题
+
+<AccordionGroup>
+  <Accordion title="Mapper 接口找不到?">
+    检查:
+    1. XML 文件的 namespace 是否与接口全限定名一致
+    2. XML 文件是否已在 mybatis-config.xml 中注册
+    3. 方法名是否与 XML 中的 id 一致
+  </Accordion>
+  
+  <Accordion title="参数绑定失败?">
+    单个参数:
+    - 基本类型可以直接使用任意名称
+    
+    多个参数:
+    - 使用 @Param 注解指定参数名
+    - 使用 Map 传递参数
+  </Accordion>
+  
+  <Accordion title="返回结果为 null?">
+    检查:
+    1. SQL 语句是否正确
+    2. 字段名与属性名是否匹配
+    3. 使用 ResultMap 自定义映射
+  </Accordion>
+  
+  <Accordion title="事务未提交?">
+    增删改操作必须调用:
+    ```java
+    sqlSession.commit();
+    ```
+    
+    或开启自动提交:
+    ```java
+    SqlSession sqlSession = sqlSessionFactory.openSession(true);
+    ```
+  </Accordion>
+</AccordionGroup>

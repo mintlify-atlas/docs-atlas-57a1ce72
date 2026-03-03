@@ -1,0 +1,266 @@
+---
+title: Repository Setup Guide
+description: Complete setup instructions for Obsidian, Git, and development tools to work with the Note knowledge base
+---
+
+## Overview
+
+This guide covers the complete setup process for working with the Note knowledge base, including Obsidian configuration, Git settings, and tool optimization.
+
+<Note>
+  The repository uses Obsidian as the primary note-taking tool with Git for version control. Follow these steps to get your environment configured correctly.
+</Note>
+
+## Obsidian Setup
+
+Obsidian is the primary tool for managing and editing notes in this knowledge base.
+
+<Steps>
+  <Step title="Install Obsidian Plugin">
+    Install the **Obsidian Custom Attachment Location** plugin to manage image and asset paths.
+    
+    You can install it directly using this Obsidian URL:
+    ```
+    obsidian://show-plugin?id=obsidian-custom-attachment-location
+    ```
+  </Step>
+  
+  <Step title="Configure Image Paths">
+    Set the image storage path to be relative and store files in the `./assets` directory.
+    
+    This ensures all images are organized in a consistent location relative to your notes.
+  </Step>
+</Steps>
+
+<Tip>
+  Using relative paths for assets ensures the notes remain portable across different systems and Obsidian installations.
+</Tip>
+
+## Typora Setup (Alternative Editor)
+
+Typora can be used as an alternative markdown editor for this knowledge base.
+
+<Steps>
+  <Step title="Install Vue Theme">
+    Set Typora to use the **Vue theme** for a consistent visual experience.
+  </Step>
+  
+  <Step title="Configure Image Path">
+    Set the image path pattern to match the Obsidian configuration:
+    
+    ```cmd
+    ./assets/${filename}
+    ```
+    
+    This ensures images saved in Typora follow the same organization as Obsidian.
+  </Step>
+</Steps>
+
+## Git Configuration
+
+### User Settings
+
+Configure your Git identity for commits:
+
+```bash
+git config --global user.email "your-email@example.com"
+git config --global user.name "Your Name"
+```
+
+### One-Command Push Alias
+
+Create a Git alias for quick commits and pushes:
+
+<Steps>
+  <Step title="Create the Alias">
+    Run this command to create the `git pa` alias:
+    
+    ```bash
+    git config --global alias.pa '!git add -A && git commit -m "Small Auto Commit" && git push'
+    ```
+  </Step>
+  
+  <Step title="Use the Alias">
+    Now you can commit and push all changes with a single command:
+    
+    ```bash
+    git pa
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  The `git pa` alias commits all changes with a generic message. Use it only for quick personal updates. For collaborative work, write descriptive commit messages.
+</Warning>
+
+### UTF-8 Encoding Configuration
+
+To prevent encoding issues and display Chinese characters correctly in Git logs:
+
+```bash
+git config --global i18n.commitencoding utf-8
+git config --global i18n.logoutputencoding utf-8
+```
+
+<Accordion title="Additional encoding fixes for Windows">
+  If you're using Windows and experiencing encoding issues:
+  
+  **1. Set console encoding to UTF-8:**
+  ```cmd
+  chcp 65001
+  ```
+  
+  **2. Use Git Bash or WSL:**
+  Git Bash and Windows Subsystem for Linux (WSL) have better UTF-8 support by default and typically avoid encoding issues.
+  
+  **3. Configure console font:**
+  Ensure your terminal uses a UTF-8 compatible font like Consolas.
+  
+  **4. Ensure text editor uses UTF-8:**
+  Make sure your text editor saves files in UTF-8 encoding, especially for commit messages.
+</Accordion>
+
+### Proxy Configuration (Windows)
+
+If you're using Clash or another proxy tool and Git clone/pull operations are slow or failing:
+
+```bash
+git config --global http.proxy http://127.0.0.1:7890
+git config --global https.proxy http://127.0.0.1:7890
+```
+
+<Note>
+  Replace `7890` with your actual proxy port if different. This setting is typically needed when using Clash on Windows.
+</Note>
+
+### Handling Windows File Name Issues
+
+Windows doesn't support certain characters in file names (like `:`, `*`, `?`, etc.). If you encounter "unable to create file: Invalid argument" errors:
+
+<Steps>
+  <Step title="Option 1: Disable NTFS Protection">
+    ```bash
+    git config core.protectNTFS false
+    ```
+    
+    <Warning>
+      This may allow files with Windows-incompatible names to be created, which could cause issues.
+    </Warning>
+  </Step>
+  
+  <Step title="Option 2: Rename Files (Recommended)">
+    The recommended approach is to:
+    1. Find the problematic files on GitHub/GitLab web interface
+    2. Rename them to remove illegal characters
+    3. Pull the repository again
+    
+    This ensures compatibility across all platforms.
+  </Step>
+  
+  <Step title="Option 3: Use Linux/WSL">
+    Work with the repository in a Linux environment or WSL, which supports a wider range of file name characters.
+  </Step>
+</Steps>
+
+## GitHub Codespaces Configuration
+
+If you're using GitHub Codespaces to work with this repository:
+
+<Steps>
+  <Step title="Update Package Manager">
+    Update apt packages to ensure you have the latest tools:
+    
+    ```bash
+    sudo apt update && sudo apt upgrade
+    ```
+  </Step>
+  
+  <Step title="Install System Information Tools">
+    Install neofetch for system information display:
+    
+    ```bash
+    apt install neofetch
+    ```
+  </Step>
+</Steps>
+
+## Verification
+
+After completing the setup, verify your configuration:
+
+<CodeGroup>
+```bash Check Git Config
+git config --list | grep -E "user|i18n|proxy"
+```
+
+```bash Test Git Operations
+# Test that you can pull the latest changes
+git pull
+
+# Verify encoding is working
+git log --oneline -5
+```
+
+```bash Verify Directory Structure
+# Ensure assets directory exists
+ls -la | grep assets
+```
+</CodeGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Git pull/clone is very slow" icon="clock">
+    **Solution**: Configure proxy settings if you're behind a firewall or using a VPN:
+    
+    ```bash
+    git config --global http.proxy http://127.0.0.1:7890
+    git config --global https.proxy http://127.0.0.1:7890
+    ```
+    
+    Adjust the port number based on your proxy configuration (common ports: 7890, 1080, 8080).
+  </Accordion>
+  
+  <Accordion title="Chinese characters appear as garbled text" icon="language">
+    **Solution**: Configure UTF-8 encoding:
+    
+    ```bash
+    git config --global i18n.commitencoding utf-8
+    git config --global i18n.logoutputencoding utf-8
+    ```
+    
+    For Windows Command Prompt:
+    ```cmd
+    chcp 65001
+    ```
+  </Accordion>
+  
+  <Accordion title="Cannot create files with special characters" icon="exclamation-triangle">
+    **Solution**: This is a Windows file system limitation. Either:
+    
+    1. Rename the files on the web interface before pulling
+    2. Use WSL or a Linux environment
+    3. Set `git config core.protectNTFS false` (not recommended)
+  </Accordion>
+  
+  <Accordion title="Obsidian images not displaying" icon="image">
+    **Solution**: Verify your attachment path settings:
+    
+    1. Check that the Obsidian Custom Attachment Location plugin is installed
+    2. Verify the attachment path is set to `./assets`
+    3. Ensure images are using relative paths
+    4. Check that the assets directory exists in your vault
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Explore Content" icon="book-open" href="/introduction">
+    Start exploring the knowledge base topics
+  </Card>
+  
+  <Card title="Interview Prep" icon="clipboard-question" href="/interview/overview">
+    Dive into interview preparation materials
+  </Card>
+</CardGroup>

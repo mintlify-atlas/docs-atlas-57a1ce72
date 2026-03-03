@@ -1,0 +1,508 @@
+---
+title: Git 工作流与命令
+description: Git版本控制系统的常用命令、工作流程和最佳实践
+---
+
+## Git 快速入门
+
+Git 是一个分布式版本控制系统,用于跟踪和管理代码变更。
+
+### 初始化仓库
+
+<Steps>
+  <Step title="创建目录">
+    先在本地找一个合适的地方创建空目录:
+    
+    ```bash
+    mkdir gitspace
+    cd gitspace
+    ```
+  </Step>
+  
+  <Step title="初始化 Git 仓库">
+    通过以下命令将目录变成 Git 可以管理的仓库:
+    
+    ```bash
+    git init
+    ```
+    
+    可以看到当前目录下多了一个 `.git` 目录,这个目录是 Git 用来跟踪管理版本库的。
+  </Step>
+</Steps>
+
+### 配置用户信息
+
+设置你的名字和 Email 地址:
+
+```bash
+git config --global user.name "your-name"
+git config --global user.email "your-email@example.com"
+```
+
+查看配置信息:
+
+```bash
+git config --system --list  # 查看系统config
+git config --global --list  # 查看当前用户(global)配置
+git config --local --list   # 查看当前仓库配置信息
+```
+
+## 基本操作
+
+### 添加文件
+
+添加单个文件到暂存区:
+
+```bash
+git add demo1.txt
+```
+
+添加当前目录下所有文件:
+
+```bash
+git add .
+```
+
+### 提交更改
+
+提交文件到仓库:
+
+```bash
+git commit -m "提交说明信息"
+```
+
+<Note>
+  `-m` 后面输入的是本次提交的说明,可以输入任何内容,建议输入有意义的说明信息。
+</Note>
+
+### 查看状态
+
+查看仓库当前状态:
+
+```bash
+git status
+```
+
+查看修改的内容:
+
+```bash
+git diff demo1.txt
+```
+
+### 删除文件
+
+从版本库中删除文件:
+
+```bash
+git rm demo2.txt
+git add .
+git commit -m "delete file"
+```
+
+恢复误删的文件:
+
+```bash
+git checkout -- demo2.txt
+```
+
+## 版本管理
+
+### 查看历史记录
+
+查看提交历史:
+
+```bash
+git log
+```
+
+简洁的单行显示:
+
+```bash
+git log --pretty=oneline
+```
+
+### 版本回退
+
+回退到上一个版本:
+
+```bash
+git reset --hard HEAD^
+```
+
+版本说明:
+- `HEAD` 表示当前版本
+- `HEAD^` 表示上一个版本
+- `HEAD^^` 表示上上个版本
+
+回退到指定版本:
+
+```bash
+git reset --hard commit_id
+```
+
+<Warning>
+  回退前请确保已保存所有重要更改,使用 `git log --pretty=oneline` 获取 commit_id。
+</Warning>
+
+## 远程仓库操作
+
+### 查看远程仓库
+
+列出远程仓库的简短名字:
+
+```bash
+git remote
+```
+
+显示对应的克隆地址:
+
+```bash
+git remote -v
+```
+
+查看更多远程仓库信息:
+
+```bash
+git remote show
+```
+
+### 添加远程仓库
+
+给项目添加一个新的远程仓库:
+
+```bash
+git remote add <shortname> <url>
+```
+
+示例:
+
+```bash
+git remote add origin https://github.com/username/repo.git
+```
+
+### 远程仓库重命名与移除
+
+重命名远程仓库:
+
+```bash
+git remote rename origin old-origin
+```
+
+移除远程仓库:
+
+```bash
+git remote remove old-origin
+```
+
+## Git 三大操作对比
+
+### git clone
+
+将远程仓库克隆到本地:
+
+```bash
+git clone <版本库的URL> [本地目录名]
+```
+
+特点:
+- 从无到有的克隆操作
+- 本地无需是一个仓库
+- 会设置额外的远程跟踪分支
+- `.git` 文件夹里存放着与远程仓库一模一样的版本库记录
+
+### git pull
+
+git pull = git fetch + git merge,拉取远程分支更新并合并到本地:
+
+```bash
+git pull <远程主机名> [远程分支名]:[本地分支名]
+```
+
+如果不指定分支名,则将远程 master 分支拉取并与本地当前分支合并。
+
+### git fetch
+
+从远程仓库下载代码到本地:
+
+<Tabs>
+  <Tab title="方法一">
+    ```bash
+    git fetch origin master                # 从远程的origin仓库的master分支下载代码
+    git log -p master..origin/master      # 比较本地仓库和远程的区别
+    git merge origin/master                # 合并远程下载的代码到本地
+    ```
+  </Tab>
+  
+  <Tab title="方法二">
+    ```bash
+    git fetch origin master:temp           # 下载到本地并新建temp分支
+    git diff temp                          # 比较master分支和temp分支的不同
+    git merge temp                         # 合并temp分支到master分支
+    git branch -d temp                     # 删除temp分支
+    ```
+  </Tab>
+</Tabs>
+
+### 三者区别
+
+**是否需要本地初始化仓库:**
+- git clone: 不需要
+- git pull 和 git fetch: 需要
+
+**是否可以直接推送到远程:**
+- git clone: 可以直接推送
+- git pull 和 git fetch: 需要先执行 `git remote add` 添加远程仓库后才能 push
+
+## 分支管理
+
+### 查看分支
+
+```bash
+git branch
+```
+
+当前分支前面会有一个星号标记。
+
+### 创建与切换分支
+
+创建新分支:
+
+```bash
+git branch dev
+```
+
+切换到分支:
+
+```bash
+git checkout dev
+```
+
+### 合并分支
+
+将 dev 分支合并到 master 分支:
+
+```bash
+git checkout master
+git merge dev
+```
+
+### 删除分支
+
+```bash
+git branch -d dev
+```
+
+或者:
+
+```bash
+git branch -d newtest
+```
+
+## Git 提交信息规范
+
+Commit message 包括三个部分: Header、Body 和 Footer。
+
+```
+<Header>
+
+<Body>
+
+<Footer>
+```
+
+### Header 格式
+
+```
+<type>: <subject>
+```
+
+**type 类型:**
+- `feat`: 新功能(feature)
+- `fix`: 修补 bug
+- `docs`: 文档(documentation)
+- `style`: 格式(不影响代码运行的变动)
+- `refactor`: 重构
+- `test`: 增加测试
+- `chore`: 构建过程或辅助工具的变动
+
+**subject 规则:**
+- 以动词开头,使用第一人称现在时(如 change,而不是 changed)
+- 第一个字母小写
+- 结尾不加句号(.)
+
+### Body 部分
+
+Body 是对本次 commit 的详细描述:
+
+```
+More detailed explanatory text, if necessary. Wrap it to
+about 72 characters or so.
+
+Further paragraphs come after blank lines.
+
+- Bullet points are okay, too
+- Use a hanging indent
+```
+
+注意点:
+- 使用第一人称现在时
+- 说明代码变动的动机,以及与以前行为的对比
+
+### Footer 部分
+
+Footer 用于两种情况:
+
+**关联 Issue:**
+
+```
+Issue #1, #2, #3
+```
+
+**关闭 Issue:**
+
+```
+Close #1, #2, #3
+```
+
+### Revert
+
+如果当前 commit 用于撤销以前的 commit,必须以 `revert:` 开头:
+
+```
+revert: feat(pencil): add 'graphiteWidth' option
+
+This reverts commit 667ecc1654a317a13331b17617d973392f415f02.
+```
+
+### 示例
+
+```
+feat: 添加了分享功能
+
+给每篇博文添加了分享功能
+
+- 添加分享到微博功能
+- 添加分享到微信功能
+- 添加分享到朋友圈功能
+
+Issue #1, #2
+Close #1
+```
+
+## Git GPG 签名
+
+### 安装 GPG
+
+macOS 下通过 Homebrew 安装:
+
+```bash
+brew install gpg
+```
+
+### 生成密钥
+
+生成公钥和私钥:
+
+```bash
+gpg --full-generate-key
+```
+
+<Note>
+  全部默认即可,除用户/邮箱/密码需要自定义。
+</Note>
+
+### 查看密钥
+
+```bash
+gpg --list-keys        # 查看所有keys
+gpg --list-public-keys # 查看所有公钥
+gpg --list-secret-keys # 查看所有私钥
+```
+
+查看完整内容:
+
+```bash
+gpg --armor --export <邮箱或指纹或长密钥ID>              # 公钥
+gpg --armor --export-secret-keys <邮箱或指纹或长密钥ID> # 私钥
+```
+
+导出到文件:
+
+```bash
+gpg --output mygpgkey_pub.gpg --armor --export <密钥ID>
+```
+
+### GitHub 配置
+
+<Steps>
+  <Step title="添加 GPG 公钥到 GitHub">
+    访问 https://github.com/settings/keys,点击 `New GPG key`,将公钥输入。
+    
+    <Warning>
+      注意是公钥,不是私钥!
+    </Warning>
+  </Step>
+  
+  <Step title="本地配置">
+    ```bash
+    git config --global gpg.program gpg
+    git config --global user.signingkey <长密钥ID>
+    git config --global commit.gpgsign true
+    ```
+  </Step>
+</Steps>
+
+### 解决签名问题
+
+如果遇到 `error: gpg failed to sign the data` 错误:
+
+```bash
+brew upgrade gnupg
+brew link --overwrite gnupg
+brew install pinentry-mac
+echo "pinentry-program /opt/homebrew/bin/pinentry-mac" >> ~/.gnupg/gpg-agent.conf
+killall gpg-agent
+```
+
+编辑配置文件:
+
+```bash
+# ~/.zshrc
+export GPG_TTY=$(tty)
+
+# ~/bash_profile
+export GPG_TTY=$(tty)
+```
+
+重启电脑后测试:
+
+```bash
+echo "test" | gpg --clearsign
+```
+
+## 常见问题
+
+<AccordionGroup>
+  <Accordion title="如何撤销未提交的修改?">
+    ```bash
+    git checkout -- filename  # 撤销单个文件
+    git checkout .            # 撤销所有修改
+    ```
+  </Accordion>
+  
+  <Accordion title="如何查看某个文件的修改历史?">
+    ```bash
+    git log -- filename
+    git log -p filename  # 查看详细的修改内容
+    ```
+  </Accordion>
+  
+  <Accordion title="如何临时保存当前工作?">
+    ```bash
+    git stash        # 保存当前工作
+    git stash list   # 查看保存的工作
+    git stash pop    # 恢复工作并删除stash
+    git stash apply  # 恢复工作但保留stash
+    ```
+  </Accordion>
+</AccordionGroup>

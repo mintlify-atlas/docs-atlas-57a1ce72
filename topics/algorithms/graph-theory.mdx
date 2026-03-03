@@ -1,0 +1,510 @@
+---
+title: Graph Algorithms
+description: Essential graph algorithms including traversal, shortest paths, and connectivity with practical implementations
+---
+
+# Graph Algorithms
+
+Graphs are powerful data structures for modeling relationships and networks. This guide covers fundamental graph algorithms.
+
+## Graph Fundamentals
+
+### Basic Concepts
+
+<Note>
+**Graph Definition**: G(V, E)
+- **V**: Set of vertices (nodes)
+- **E**: Set of edges (connections)
+- **Directed**: Edges have direction
+- **Undirected**: Edges are bidirectional
+- **Weighted**: Edges have weights/costs
+</Note>
+
+### Graph Representation
+
+#### Adjacency List
+
+```java
+// Most common representation
+List<Integer>[] graph = new LinkedList[n];
+for (int i = 0; i < n; i++) {
+    graph[i] = new LinkedList<>();
+}
+
+// Add edge: u -> v
+graph[u].add(v);
+
+// For weighted graphs
+List<int[]>[] graph = new LinkedList[n]; // [neighbor, weight]
+graph[u].add(new int[]{v, weight});
+```
+
+#### Adjacency Matrix
+
+```java
+// For dense graphs
+int[][] matrix = new int[n][n];
+
+// Add edge: u -> v with weight w
+matrix[u][v] = w;
+
+// For unweighted: use 1 for edge, 0 for no edge
+// For no edge in weighted: use Integer.MAX_VALUE or -1
+```
+
+<Accordion title="Adjacency List vs Matrix">
+| Aspect | Adjacency List | Adjacency Matrix |
+|--------|---------------|------------------|
+| Space | O(V + E) | O(V²) |
+| Check if edge exists | O(degree) | O(1) |
+| Iterate neighbors | O(degree) | O(V) |
+| Add edge | O(1) | O(1) |
+| Best for | Sparse graphs | Dense graphs |
+</Accordion>
+
+## Graph Traversal
+
+### Depth-First Search (DFS)
+
+```java
+class GraphDFS {
+    boolean[] visited;
+    
+    public void dfs(List<Integer>[] graph, int node) {
+        visited[node] = true;
+        
+        // Process node
+        System.out.println(node);
+        
+        for (int neighbor : graph[node]) {
+            if (!visited[neighbor]) {
+                dfs(graph, neighbor);
+            }
+        }
+    }
+}
+```
+
+#### DFS with Path Tracking
+
+```java
+class PathDFS {
+    boolean[] visited;
+    boolean[] onPath; // Tracks current path (for cycle detection)
+    
+    public void dfs(List<Integer>[] graph, int node) {
+        visited[node] = true;
+        onPath[node] = true;
+        
+        for (int neighbor : graph[node]) {
+            if (onPath[neighbor]) {
+                // Found a cycle!
+            }
+            if (!visited[neighbor]) {
+                dfs(graph, neighbor);
+            }
+        }
+        
+        onPath[node] = false; // Backtrack
+    }
+}
+```
+
+### Breadth-First Search (BFS)
+
+```java
+class GraphBFS {
+    public void bfs(List<Integer>[] graph, int start) {
+        boolean[] visited = new boolean[graph.length];
+        Queue<Integer> queue = new LinkedList<>();
+        
+        queue.offer(start);
+        visited[start] = true;
+        
+        while (!queue.isEmpty()) {
+            int node = queue.poll();
+            System.out.println(node);
+            
+            for (int neighbor : graph[node]) {
+                if (!visited[neighbor]) {
+                    visited[neighbor] = true;
+                    queue.offer(neighbor);
+                }
+            }
+        }
+    }
+}
+```
+
+## Topological Sort
+
+### Problem: Course Schedule II
+
+**LeetCode 210**: Return course order considering prerequisites.
+
+```java
+class Solution {
+    public int[] findOrder(int numCourses, int[][] prerequisites) {
+        List<Integer>[] graph = new LinkedList[numCourses];
+        int[] indegree = new int[numCourses];
+        
+        // Build graph
+        for (int i = 0; i < numCourses; i++) {
+            graph[i] = new LinkedList<>();
+        }
+        
+        for (int[] pre : prerequisites) {
+            int course = pre[0], prereq = pre[1];
+            graph[prereq].add(course);
+            indegree[course]++;
+        }
+        
+        // BFS with Kahn's algorithm
+        Queue<Integer> queue = new LinkedList<>();
+        for (int i = 0; i < numCourses; i++) {
+            if (indegree[i] == 0) {
+                queue.offer(i);
+            }
+        }
+        
+        int[] result = new int[numCourses];
+        int index = 0;
+        
+        while (!queue.isEmpty()) {
+            int course = queue.poll();
+            result[index++] = course;
+            
+            for (int next : graph[course]) {
+                indegree[next]--;
+                if (indegree[next] == 0) {
+                    queue.offer(next);
+                }
+            }
+        }
+        
+        return index == numCourses ? result : new int[0];
+    }
+}
+```
+
+<Accordion title="DFS-based Topological Sort">
+```java
+class Solution {
+    List<Integer> result = new ArrayList<>();
+    boolean[] visited;
+    boolean[] onPath;
+    boolean hasCycle = false;
+    
+    public int[] findOrder(int numCourses, int[][] prerequisites) {
+        List<Integer>[] graph = buildGraph(numCourses, prerequisites);
+        visited = new boolean[numCourses];
+        onPath = new boolean[numCourses];
+        
+        for (int i = 0; i < numCourses; i++) {
+            if (!visited[i]) {
+                dfs(graph, i);
+            }
+        }
+        
+        if (hasCycle) return new int[0];
+        
+        // Reverse result for topological order
+        Collections.reverse(result);
+        return result.stream().mapToInt(i -> i).toArray();
+    }
+    
+    private void dfs(List<Integer>[] graph, int node) {
+        if (onPath[node]) {
+            hasCycle = true;
+            return;
+        }
+        if (visited[node]) return;
+        
+        visited[node] = true;
+        onPath[node] = true;
+        
+        for (int next : graph[node]) {
+            dfs(graph, next);
+        }
+        
+        onPath[node] = false;
+        result.add(node); // Add in post-order
+    }
+}
+```
+</Accordion>
+
+## Shortest Path Algorithms
+
+### Dijkstra's Algorithm
+
+Find shortest paths from single source in weighted graph with non-negative weights.
+
+```java
+class Dijkstra {
+    public int[] shortestPath(List<int[]>[] graph, int start) {
+        int n = graph.length;
+        int[] dist = new int[n];
+        Arrays.fill(dist, Integer.MAX_VALUE);
+        dist[start] = 0;
+        
+        // Min heap: [distance, node]
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> a[0] - b[0]);
+        pq.offer(new int[]{0, start});
+        
+        boolean[] visited = new boolean[n];
+        
+        while (!pq.isEmpty()) {
+            int[] curr = pq.poll();
+            int d = curr[0], node = curr[1];
+            
+            if (visited[node]) continue;
+            visited[node] = true;
+            
+            for (int[] edge : graph[node]) {
+                int neighbor = edge[0], weight = edge[1];
+                int newDist = dist[node] + weight;
+                
+                if (newDist < dist[neighbor]) {
+                    dist[neighbor] = newDist;
+                    pq.offer(new int[]{newDist, neighbor});
+                }
+            }
+        }
+        
+        return dist;
+    }
+}
+```
+
+### Floyd-Warshall Algorithm
+
+Find shortest paths between all pairs of nodes.
+
+```java
+class FloydWarshall {
+    public int[][] allPairsShortestPath(int[][] graph) {
+        int n = graph.length;
+        int[][] dist = new int[n][n];
+        
+        // Initialize
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (i == j) {
+                    dist[i][j] = 0;
+                } else if (graph[i][j] != 0) {
+                    dist[i][j] = graph[i][j];
+                } else {
+                    dist[i][j] = Integer.MAX_VALUE;
+                }
+            }
+        }
+        
+        // Floyd-Warshall
+        for (int k = 0; k < n; k++) {
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+                    if (dist[i][k] != Integer.MAX_VALUE && 
+                        dist[k][j] != Integer.MAX_VALUE) {
+                        dist[i][j] = Math.min(dist[i][j], 
+                                            dist[i][k] + dist[k][j]);
+                    }
+                }
+            }
+        }
+        
+        return dist;
+    }
+}
+```
+
+## Union-Find (Disjoint Set)
+
+Efficient data structure for connectivity queries.
+
+```java
+class UnionFind {
+    int[] parent;
+    int[] size;
+    int count; // Number of connected components
+    
+    public UnionFind(int n) {
+        parent = new int[n];
+        size = new int[n];
+        count = n;
+        
+        for (int i = 0; i < n; i++) {
+            parent[i] = i;
+            size[i] = 1;
+        }
+    }
+    
+    public int find(int x) {
+        // Path compression
+        while (parent[x] != x) {
+            parent[x] = parent[parent[x]];
+            x = parent[x];
+        }
+        return x;
+    }
+    
+    public boolean union(int x, int y) {
+        int rootX = find(x);
+        int rootY = find(y);
+        
+        if (rootX == rootY) return false;
+        
+        // Union by size
+        if (size[rootX] < size[rootY]) {
+            parent[rootX] = rootY;
+            size[rootY] += size[rootX];
+        } else {
+            parent[rootY] = rootX;
+            size[rootX] += size[rootY];
+        }
+        
+        count--;
+        return true;
+    }
+    
+    public boolean connected(int x, int y) {
+        return find(x) == find(y);
+    }
+    
+    public int getCount() {
+        return count;
+    }
+}
+```
+
+### Problem: Redundant Connection
+
+**LeetCode 684**: Find edge that creates a cycle in a tree.
+
+```java
+class Solution {
+    public int[] findRedundantConnection(int[][] edges) {
+        UnionFind uf = new UnionFind(edges.length + 1);
+        
+        for (int[] edge : edges) {
+            if (!uf.union(edge[0], edge[1])) {
+                // This edge creates a cycle
+                return edge;
+            }
+        }
+        
+        return new int[]{-1, -1};
+    }
+}
+```
+
+## Problem: All Paths From Source to Target
+
+**LeetCode 797**: Find all paths from node 0 to node n-1 in DAG.
+
+```java
+class Solution {
+    List<List<Integer>> result = new ArrayList<>();
+    
+    public List<List<Integer>> allPathsSourceTarget(int[][] graph) {
+        List<Integer> path = new ArrayList<>();
+        path.add(0);
+        dfs(graph, 0, path);
+        return result;
+    }
+    
+    private void dfs(int[][] graph, int node, List<Integer> path) {
+        if (node == graph.length - 1) {
+            result.add(new ArrayList<>(path));
+            return;
+        }
+        
+        for (int neighbor : graph[node]) {
+            path.add(neighbor);
+            dfs(graph, neighbor, path);
+            path.remove(path.size() - 1); // Backtrack
+        }
+    }
+}
+```
+
+## Problem: Network Delay Time
+
+**LeetCode 743**: Minimum time for signal to reach all nodes.
+
+```java
+class Solution {
+    public int networkDelayTime(int[][] times, int n, int k) {
+        List<int[]>[] graph = new LinkedList[n + 1];
+        for (int i = 1; i <= n; i++) {
+            graph[i] = new LinkedList<>();
+        }
+        
+        for (int[] time : times) {
+            graph[time[0]].add(new int[]{time[1], time[2]});
+        }
+        
+        int[] dist = new int[n + 1];
+        Arrays.fill(dist, Integer.MAX_VALUE);
+        dist[k] = 0;
+        
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> a[0] - b[0]);
+        pq.offer(new int[]{0, k});
+        
+        while (!pq.isEmpty()) {
+            int[] curr = pq.poll();
+            int d = curr[0], node = curr[1];
+            
+            if (d > dist[node]) continue;
+            
+            for (int[] edge : graph[node]) {
+                int neighbor = edge[0], weight = edge[1];
+                int newDist = dist[node] + weight;
+                
+                if (newDist < dist[neighbor]) {
+                    dist[neighbor] = newDist;
+                    pq.offer(new int[]{newDist, neighbor});
+                }
+            }
+        }
+        
+        int maxDelay = 0;
+        for (int i = 1; i <= n; i++) {
+            if (dist[i] == Integer.MAX_VALUE) return -1;
+            maxDelay = Math.max(maxDelay, dist[i]);
+        }
+        
+        return maxDelay;
+    }
+}
+```
+
+## Algorithm Comparison
+
+| Algorithm | Use Case | Time Complexity | Space Complexity |
+|-----------|----------|----------------|------------------|
+| DFS | Cycle detection, path finding | O(V + E) | O(V) |
+| BFS | Shortest path (unweighted) | O(V + E) | O(V) |
+| Dijkstra | Shortest path (non-negative) | O((V + E) log V) | O(V) |
+| Floyd-Warshall | All pairs shortest path | O(V³) | O(V²) |
+| Union-Find | Connectivity queries | O(α(n)) ≈ O(1) | O(V) |
+| Topological Sort | Task scheduling | O(V + E) | O(V) |
+
+<Warning>
+**Common Pitfalls:**
+1. Forgetting to mark nodes as visited in DFS/BFS
+2. Not handling disconnected components
+3. Using Dijkstra on graphs with negative weights
+4. Incorrect Union-Find path compression
+5. Off-by-one errors in graph indexing
+</Warning>
+
+<Tip>
+**Graph Problem Checklist:**
+- Is the graph directed or undirected?
+- Is it weighted or unweighted?
+- Are there negative weights?
+- Is it a DAG (Directed Acyclic Graph)?
+- Do we need all paths or just one?
+- Is it sparse or dense?
+</Tip>

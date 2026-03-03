@@ -1,0 +1,708 @@
+---
+title: 'Redis Fundamentals'
+description: 'Redis data structures, operations, and caching strategies'
+icon: 'bolt'
+---
+
+## What is Redis?
+
+Redis (REmote DIctionary Server) is an open-source, in-memory data structure store used as:
+- **Database**: Persistent key-value storage
+- **Cache**: High-performance caching layer
+- **Message Broker**: Pub/sub messaging
+
+### Key Features
+
+<CardGroup cols={2}>
+  <Card title="In-Memory Storage" icon="memory">
+    All data stored in RAM for microsecond latency
+  </Card>
+  
+  <Card title="Rich Data Types" icon="shapes">
+    Strings, Lists, Sets, Hashes, Sorted Sets, and more
+  </Card>
+  
+  <Card title="Persistence" icon="floppy-disk">
+    RDB snapshots and AOF logs for durability
+  </Card>
+  
+  <Card title="High Performance" icon="gauge-high">
+    100,000+ operations per second capability
+  </Card>
+</CardGroup>
+
+## Installation & Setup
+
+### Linux Installation
+
+```bash
+# Download and extract
+wget http://download.redis.io/releases/redis-6.2.6.tar.gz
+tar -zxvf redis-6.2.6.tar.gz
+cd redis-6.2.6
+
+# Compile and install
+make
+make install
+
+# Start Redis server
+redis-server redis.conf
+
+# Connect with client
+redis-cli -p 6379
+```
+
+### Basic Configuration
+
+```bash
+# redis.conf key settings
+
+# Run as background daemon
+daemonize yes
+
+# Bind to specific IP (0.0.0.0 for all)
+bind 127.0.0.1
+
+# Set password
+requirepass yourpassword
+
+# Set port
+port 6379
+
+# Database count (default 16)
+databases 16
+
+# Max memory
+maxmemory 256mb
+```
+
+<Tip>
+**Production Setup**:
+1. Set `daemonize yes` for background running
+2. Configure `requirepass` for security
+3. Adjust `maxmemory` based on available RAM
+4. Enable persistence (RDB or AOF)
+</Tip>
+
+## Data Structures & Commands
+
+### String (字符串)
+
+Binary-safe strings up to 512MB.
+
+```bash
+# Basic operations
+SET key value
+GET key
+DEL key
+
+# Set with expiration (seconds)
+SETEX key 60 value
+
+# Set if not exists
+SETNX key value
+
+# Increment/Decrement
+INCR counter
+DECR counter
+INCRBY counter 10
+
+# Multiple operations
+MSET key1 value1 key2 value2
+MGET key1 key2
+
+# Append to string
+APPEND key " additional"
+```
+
+**Use Cases**: Caching, counters, distributed locks, session storage
+
+### Hash (哈希)
+
+Field-value pairs, ideal for objects.
+
+```bash
+# Set hash fields
+HSET user:1 name "John" age 30 email "john@example.com"
+
+# Get single field
+HGET user:1 name
+
+# Get all fields
+HGETALL user:1
+
+# Get multiple fields
+HMGET user:1 name age
+
+# Check if field exists
+HEXISTS user:1 name
+
+# Delete field
+HDEL user:1 email
+
+# Increment field
+HINCRBY user:1 age 1
+
+# Get all keys/values
+HKEYS user:1
+HVALS user:1
+```
+
+<Info>
+**Why Hash over String?**
+- More memory efficient for objects
+- Update individual fields without fetching entire object
+- Better semantic representation
+</Info>
+
+### List (列表)
+
+Doubly-linked list, supports both ends operations.
+
+```bash
+# Push to list
+LPUSH mylist "first"   # Add to head
+RPUSH mylist "last"    # Add to tail
+
+# Pop from list
+LPOP mylist   # Remove from head
+RPOP mylist   # Remove from tail
+
+# Get range (0 to -1 for all)
+LRANGE mylist 0 -1
+
+# Get by index
+LINDEX mylist 0
+
+# List length
+LLEN mylist
+
+# Blocking pop (for queues)
+BLPOP mylist 30  # Wait up to 30 seconds
+
+# Trim list
+LTRIM mylist 0 99  # Keep first 100 elements
+```
+
+**Use Cases**: 
+- Message queues
+- Timeline feeds
+- Latest items list
+- Task scheduling
+
+### Set (集合)
+
+Unordered collection of unique strings.
+
+```bash
+# Add members
+SADD myset "apple" "banana" "orange"
+
+# Check membership
+SISMEMBER myset "apple"
+
+# Get all members
+SMEMBERS myset
+
+# Remove member
+SREM myset "banana"
+
+# Set size
+SCARD myset
+
+# Random member
+SRANDMEMBER myset
+
+# Pop random
+SPOP myset
+
+# Set operations
+SINTER set1 set2      # Intersection
+SUNION set1 set2      # Union
+SDIFF set1 set2       # Difference
+```
+
+**Use Cases**:
+- Tags
+- Unique visitors
+- Social relationships (followers, following)
+- Lottery/raffle systems
+
+### Sorted Set (有序集合)
+
+Set with score for each member, auto-sorted by score.
+
+```bash
+# Add with scores
+ZADD leaderboard 100 "player1" 85 "player2" 92 "player3"
+
+# Get by rank (ascending)
+ZRANGE leaderboard 0 -1 WITHSCORES
+
+# Get by rank (descending)
+ZREVRANGE leaderboard 0 -1 WITHSCORES
+
+# Get by score range
+ZRANGEBYSCORE leaderboard 80 100
+
+# Get rank of member
+ZRANK leaderboard "player1"
+ZREVRANK leaderboard "player1"  # Reverse rank
+
+# Get score
+ZSCORE leaderboard "player1"
+
+# Increment score
+ZINCRBY leaderboard 10 "player1"
+
+# Count in score range
+ZCOUNT leaderboard 80 100
+
+# Remove member
+ZREM leaderboard "player2"
+```
+
+**Use Cases**:
+- Leaderboards
+- Priority queues
+- Time-series data
+- Rating systems
+
+## Advanced Data Types
+
+### Bitmaps
+
+Bit-level operations on strings.
+
+```bash
+# Set bit
+SETBIT user:signin:2024-01-01 100 1  # User 100 signed in
+
+# Get bit
+GETBIT user:signin:2024-01-01 100
+
+# Count set bits
+BITCOUNT user:signin:2024-01-01
+
+# Bit operations
+BITOP AND result key1 key2
+BITOP OR result key1 key2
+```
+
+**Use Cases**: User online status, attendance tracking, daily active users
+
+### HyperLogLog
+
+Cardinality estimation with minimal memory.
+
+```bash
+# Add elements
+PFADD unique:visitors user1 user2 user3
+
+# Count unique elements
+PFCOUNT unique:visitors
+
+# Merge HyperLogLogs
+PFMERGE result key1 key2
+```
+
+<Info>
+**HyperLogLog Features**:
+- Uses only 12KB per key
+- 0.81% standard error
+- Estimates up to 2^64 unique elements
+- Cannot retrieve individual elements
+</Info>
+
+## Caching Strategies
+
+### Cache-Aside Pattern
+
+```java
+public User getUser(int id) {
+    // 1. Try cache first
+    String cacheKey = "user:" + id;
+    User user = redis.get(cacheKey);
+    
+    if (user != null) {
+        return user;  // Cache hit
+    }
+    
+    // 2. Cache miss - query database
+    user = database.selectById(id);
+    
+    // 3. Write to cache
+    if (user != null) {
+        redis.setex(cacheKey, 3600, user);  // 1 hour TTL
+    }
+    
+    return user;
+}
+```
+
+### Cache Invalidation
+
+```java
+public void updateUser(User user) {
+    // 1. Update database
+    database.update(user);
+    
+    // 2. Delete cache (safer than update)
+    String cacheKey = "user:" + user.getId();
+    redis.del(cacheKey);
+    
+    // Next read will refresh cache from DB
+}
+```
+
+<Warning>
+**Cache Consistency**:
+- Perfect consistency is impossible with cache
+- Choose between:
+  - **Delete cache** (recommended): Safer, next read refreshes
+  - **Update cache**: Faster but risk of inconsistency
+- Always set TTL as safety net
+</Warning>
+
+## Common Caching Issues
+
+### Cache Penetration (缓存穿透)
+
+**Problem**: Queries for non-existent data bypass cache and hit database repeatedly.
+
+**Solutions**:
+
+<Tabs>
+  <Tab title="Bloom Filter">
+    ```java
+    // Check Bloom filter before querying
+    if (!bloomFilter.mightContain(id)) {
+        return null;  // Definitely doesn't exist
+    }
+    
+    // Proceed with cache/DB query
+    return getFromCacheOrDB(id);
+    ```
+  </Tab>
+  
+  <Tab title="Cache Null Values">
+    ```java
+    User user = database.selectById(id);
+    
+    if (user == null) {
+        // Cache null result with short TTL
+        redis.setex("user:" + id, 60, "NULL");
+        return null;
+    }
+    
+    redis.setex("user:" + id, 3600, user);
+    return user;
+    ```
+  </Tab>
+</Tabs>
+
+### Cache Avalanche (缓存雪崩)
+
+**Problem**: Mass key expiration causes traffic spike to database.
+
+**Solutions**:
+
+```java
+// Add random offset to TTL
+int baseTTL = 3600;
+int randomOffset = new Random().nextInt(300);  // 0-300 seconds
+redis.setex(key, baseTTL + randomOffset, value);
+
+// Or use different TTLs for different data types
+redis.setex("user:" + id, 3600, user);      // 1 hour
+redis.setex("product:" + id, 7200, product); // 2 hours
+```
+
+### Cache Breakdown (缓存击穿)
+
+**Problem**: Hot key expires, causing concurrent requests to hit database.
+
+**Solution**: Mutex lock
+
+```java
+public User getUser(int id) {
+    String cacheKey = "user:" + id;
+    User user = redis.get(cacheKey);
+    
+    if (user != null) {
+        return user;
+    }
+    
+    // Use distributed lock
+    String lockKey = "lock:user:" + id;
+    
+    if (redis.setnx(lockKey, "1", 10)) {  // 10s timeout
+        try {
+            // Double-check cache
+            user = redis.get(cacheKey);
+            if (user != null) return user;
+            
+            // Query database
+            user = database.selectById(id);
+            
+            if (user != null) {
+                redis.setex(cacheKey, 3600, user);
+            }
+            
+            return user;
+        } finally {
+            redis.del(lockKey);
+        }
+    } else {
+        // Wait and retry
+        Thread.sleep(50);
+        return getUser(id);
+    }
+}
+```
+
+## Persistence Mechanisms
+
+### RDB (Redis Database)
+
+Point-in-time snapshots.
+
+```bash
+# redis.conf
+save 900 1      # Save if 1 key changed in 900s
+save 300 10     # Save if 10 keys changed in 300s
+save 60 10000   # Save if 10000 keys changed in 60s
+
+# Manual save
+SAVE      # Blocking
+BGSAVE    # Background (recommended)
+```
+
+**Pros**: Fast restart, compact file
+**Cons**: Data loss between snapshots, CPU intensive
+
+### AOF (Append-Only File)
+
+Logs every write operation.
+
+```bash
+# redis.conf
+appendonly yes
+appendfilename "appendonly.aof"
+
+# Sync strategy
+appendfsync always     # Safest, slowest
+appendfsync everysec   # Good balance (recommended)
+appendfsync no         # Fastest, less safe
+```
+
+**Pros**: Better durability, readable format
+**Cons**: Larger files, slower restart
+
+### Mixed Persistence (Redis 4.0+)
+
+RDB format with AOF incremental changes.
+
+```bash
+# redis.conf
+aof-use-rdb-preamble yes
+```
+
+<Tip>
+**Recommended Strategy**:
+- Enable both RDB and AOF
+- Use `appendfsync everysec` for balance
+- Enable mixed persistence for best recovery
+</Tip>
+
+## Eviction Policies
+
+When `maxmemory` limit is reached:
+
+```bash
+# redis.conf
+maxmemory-policy allkeys-lru
+```
+
+| Policy | Description |
+|--------|-------------|
+| **noeviction** | Return error when memory limit reached |
+| **allkeys-lru** | Evict least recently used keys (recommended) |
+| **allkeys-lfu** | Evict least frequently used keys |
+| **allkeys-random** | Evict random keys |
+| **volatile-lru** | LRU among keys with TTL |
+| **volatile-lfu** | LFU among keys with TTL |
+| **volatile-ttl** | Evict keys with shortest TTL |
+| **volatile-random** | Random among keys with TTL |
+
+<Info>
+**Choosing Eviction Policy**:
+- **allkeys-lru**: General purpose caching (most common)
+- **allkeys-lfu**: Frequency-based access patterns
+- **volatile-ttl**: When you set explicit TTLs
+- **noeviction**: When cache misses are acceptable
+</Info>
+
+## Transaction Support
+
+```bash
+# Start transaction
+MULTI
+
+# Queue commands
+SET key1 value1
+SET key2 value2
+INCR counter
+
+# Execute all
+EXEC
+
+# Or discard
+DISCARD
+```
+
+### Optimistic Locking with WATCH
+
+```bash
+# Watch key for changes
+WATCH balance
+
+# Get current value
+GET balance
+
+# Start transaction
+MULTI
+SET balance 100
+EXEC  # Fails if balance was modified after WATCH
+```
+
+<Warning>
+Redis transactions are **not ACID**:
+- No rollback on errors
+- Commands execute sequentially
+- Isolated from other clients
+- Use for grouping, not critical consistency
+</Warning>
+
+## Java Client Example
+
+### Using Jedis
+
+```java
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+
+public class RedisExample {
+    private static JedisPool pool = new JedisPool("localhost", 6379);
+    
+    public void stringOperations() {
+        try (Jedis jedis = pool.getResource()) {
+            // String operations
+            jedis.set("key", "value");
+            String value = jedis.get("key");
+            
+            // With expiration
+            jedis.setex("session", 3600, "sessionData");
+            
+            // Hash operations
+            jedis.hset("user:1", "name", "John");
+            jedis.hset("user:1", "age", "30");
+            Map<String, String> user = jedis.hgetAll("user:1");
+            
+            // List operations
+            jedis.lpush("tasks", "task1", "task2");
+            List<String> tasks = jedis.lrange("tasks", 0, -1);
+            
+            // Set operations
+            jedis.sadd("tags", "java", "redis", "database");
+            Set<String> tags = jedis.smembers("tags");
+            
+            // Sorted set operations
+            jedis.zadd("leaderboard", 100, "player1");
+            jedis.zadd("leaderboard", 85, "player2");
+            Set<String> top = jedis.zrevrange("leaderboard", 0, 9);
+        }
+    }
+    
+    public void transactionExample() {
+        try (Jedis jedis = pool.getResource()) {
+            Transaction tx = jedis.multi();
+            tx.set("key1", "value1");
+            tx.incr("counter");
+            tx.exec();
+        }
+    }
+}
+```
+
+## Performance Best Practices
+
+<AccordionGroup>
+  <Accordion title="Key Design">
+    - Use namespaces: `user:1000:profile`
+    - Keep keys short but descriptive
+    - Use consistent naming conventions
+    - Avoid very long keys (> 1KB)
+  </Accordion>
+  
+  <Accordion title="Memory Optimization">
+    - Use appropriate data structures
+    - Set TTL on all keys
+    - Use `SCAN` instead of `KEYS *`
+    - Enable compression for large values
+    - Monitor memory usage regularly
+  </Accordion>
+  
+  <Accordion title="Connection Management">
+    - Use connection pooling (JedisPool)
+    - Reuse connections
+    - Set appropriate timeout values
+    - Close connections in finally blocks
+  </Accordion>
+  
+  <Accordion title="Command Optimization">
+    - Use pipelining for bulk operations
+    - Prefer MGET/MSET over multiple GET/SET
+    - Avoid expensive commands (KEYS, FLUSHALL)
+    - Use Lua scripts for complex operations
+  </Accordion>
+</AccordionGroup>
+
+## Monitoring Commands
+
+```bash
+# Server info
+INFO
+INFO memory
+INFO stats
+
+# Key statistics
+DBSIZE
+KEYS pattern
+SCAN 0 MATCH user:* COUNT 100  # Better than KEYS
+
+# Memory analysis
+MEMORY USAGE key
+MEMORY STATS
+
+# Slow queries
+SLOWLOG GET 10
+
+# Monitor in real-time
+MONITOR  # Use with caution in production
+
+# Client connections
+CLIENT LIST
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="MySQL Basics" icon="database" href="/topics/databases/mysql-basics">
+    Learn relational database fundamentals
+  </Card>
+  
+  <Card title="MySQL Advanced" icon="gauge-high" href="/topics/databases/mysql-advanced">
+    Master indexes and optimization
+  </Card>
+</CardGroup>

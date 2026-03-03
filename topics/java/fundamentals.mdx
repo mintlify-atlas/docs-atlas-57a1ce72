@@ -1,0 +1,427 @@
+---
+title: Java Fundamentals
+description: Complete guide to Java programming fundamentals including syntax, OOP concepts, and core APIs
+---
+
+# Java Fundamentals
+
+Java is a high-level, object-oriented programming language that was released by Sun Microsystems in 1995. It has become one of the most widely used programming languages for enterprise and web applications.
+
+## Java Language Overview
+
+### Key Features
+
+<AccordionGroup>
+  <Accordion title="Platform Independence">
+    Java achieves platform independence through the Java Virtual Machine (JVM). The principle is:
+    
+    - Source code (.java) → Compiled to bytecode (.class)
+    - Bytecode runs on any platform with a JVM
+    - "Write Once, Run Anywhere" (WORA)
+
+    ```java
+    // Java code is compiled to bytecode
+    public class HelloWorld {
+        public static void main(String[] args) {
+            System.out.println("Hello, World!");
+        }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Object-Oriented Programming">
+    Java is a pure object-oriented language supporting:
+    
+    - **Encapsulation**: Data hiding through access modifiers
+    - **Inheritance**: Code reuse through class hierarchies
+    - **Polymorphism**: Method overriding and overloading
+    - **Abstraction**: Abstract classes and interfaces
+  </Accordion>
+
+  <Accordion title="Robust and Secure">
+    - **Strong type checking** at compile time
+    - **Automatic memory management** through garbage collection
+    - **Exception handling** mechanism
+    - **Security features** like bytecode verification
+  </Accordion>
+</AccordionGroup>
+
+## Basic Syntax
+
+### Variables and Data Types
+
+<Tabs>
+  <Tab title="Primitive Types">
+    Java has 8 primitive data types:
+
+    ```java
+    // Integer types
+    byte b = 127;        // 8-bit: -128 to 127
+    short s = 32767;     // 16-bit: -32768 to 32767
+    int i = 2147483647;  // 32-bit: -2^31 to 2^31-1
+    long l = 9223372036854775807L; // 64-bit
+
+    // Floating-point types
+    float f = 3.14f;     // 32-bit IEEE 754
+    double d = 3.14159;  // 64-bit IEEE 754
+
+    // Character type
+    char c = 'A';        // 16-bit Unicode character
+
+    // Boolean type
+    boolean flag = true; // true or false
+    ```
+  </Tab>
+
+  <Tab title="Reference Types">
+    Reference types include classes, interfaces, and arrays:
+
+    ```java
+    // String class
+    String name = "Java";
+
+    // Arrays
+    int[] numbers = {1, 2, 3, 4, 5};
+    String[] names = new String[10];
+
+    // Objects
+    Date today = new Date();
+    ArrayList<String> list = new ArrayList<>();
+    ```
+  </Tab>
+</Tabs>
+
+### Control Flow Statements
+
+<CodeGroup>
+```java Conditional Statements
+// if-else statement
+if (score >= 90) {
+    System.out.println("Grade A");
+} else if (score >= 80) {
+    System.out.println("Grade B");
+} else {
+    System.out.println("Grade C");
+}
+
+// switch statement
+switch (day) {
+    case "Monday":
+        System.out.println("Start of work week");
+        break;
+    case "Friday":
+        System.out.println("End of work week");
+        break;
+    default:
+        System.out.println("Mid week");
+}
+```
+
+```java Loops
+// for loop
+for (int i = 0; i < 10; i++) {
+    System.out.println(i);
+}
+
+// enhanced for loop
+for (String name : names) {
+    System.out.println(name);
+}
+
+// while loop
+while (count < 10) {
+    count++;
+}
+
+// do-while loop
+do {
+    count--;
+} while (count > 0);
+```
+</CodeGroup>
+
+## Object-Oriented Programming
+
+### Classes and Objects
+
+```java
+public class Person {
+    // Instance variables (encapsulation)
+    private String name;
+    private int age;
+    
+    // Constructor
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+    
+    // Getter and Setter methods
+    public String getName() {
+        return name;
+    }
+    
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    // Method
+    public void introduce() {
+        System.out.println("Hi, I'm " + name + " and I'm " + age + " years old.");
+    }
+}
+
+// Usage
+Person person = new Person("Alice", 25);
+person.introduce();
+```
+
+### Inheritance
+
+<Note>
+  Inheritance allows a class to inherit properties and methods from another class, promoting code reuse.
+</Note>
+
+```java
+// Parent class
+public class Animal {
+    protected String name;
+    
+    public Animal(String name) {
+        this.name = name;
+    }
+    
+    public void eat() {
+        System.out.println(name + " is eating");
+    }
+}
+
+// Child class
+public class Dog extends Animal {
+    private String breed;
+    
+    public Dog(String name, String breed) {
+        super(name);  // Call parent constructor
+        this.breed = breed;
+    }
+    
+    // Method overriding
+    @Override
+    public void eat() {
+        System.out.println(name + " the " + breed + " is eating dog food");
+    }
+    
+    // New method
+    public void bark() {
+        System.out.println(name + " is barking");
+    }
+}
+```
+
+### Interfaces and Abstract Classes
+
+<Tabs>
+  <Tab title="Interface">
+    ```java
+    // Interface defines a contract
+    public interface Drawable {
+        void draw();  // Abstract method
+        
+        // Default method (Java 8+)
+        default void display() {
+            System.out.println("Displaying drawable object");
+        }
+        
+        // Static method (Java 8+)
+        static void info() {
+            System.out.println("This is a Drawable interface");
+        }
+    }
+
+    // Implementation
+    public class Circle implements Drawable {
+        @Override
+        public void draw() {
+            System.out.println("Drawing a circle");
+        }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Abstract Class">
+    ```java
+    // Abstract class
+    public abstract class Shape {
+        protected String color;
+        
+        public Shape(String color) {
+            this.color = color;
+        }
+        
+        // Abstract method
+        public abstract double calculateArea();
+        
+        // Concrete method
+        public void displayColor() {
+            System.out.println("Color: " + color);
+        }
+    }
+
+    // Concrete implementation
+    public class Rectangle extends Shape {
+        private double width;
+        private double height;
+        
+        public Rectangle(String color, double width, double height) {
+            super(color);
+            this.width = width;
+            this.height = height;
+        }
+        
+        @Override
+        public double calculateArea() {
+            return width * height;
+        }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Exception Handling
+
+<Warning>
+  Proper exception handling is crucial for building robust applications.
+</Warning>
+
+```java
+public class ExceptionExample {
+    public static void main(String[] args) {
+        try {
+            // Code that might throw an exception
+            int result = divide(10, 0);
+            System.out.println("Result: " + result);
+        } catch (ArithmeticException e) {
+            // Handle specific exception
+            System.out.println("Error: Cannot divide by zero");
+        } catch (Exception e) {
+            // Handle any other exception
+            System.out.println("An error occurred: " + e.getMessage());
+        } finally {
+            // Always executed
+            System.out.println("Execution completed");
+        }
+    }
+    
+    public static int divide(int a, int b) throws ArithmeticException {
+        if (b == 0) {
+            throw new ArithmeticException("Division by zero");
+        }
+        return a / b;
+    }
+}
+```
+
+## Collections Framework
+
+### Common Collection Types
+
+<CardGroup cols={2}>
+  <Card title="List" icon="list">
+    Ordered collection that allows duplicates
+    - ArrayList (resizable array)
+    - LinkedList (doubly-linked list)
+  </Card>
+  <Card title="Set" icon="layer-group">
+    Unordered collection with no duplicates
+    - HashSet (hash table)
+    - TreeSet (sorted set)
+  </Card>
+  <Card title="Map" icon="table">
+    Key-value pairs
+    - HashMap (hash table)
+    - TreeMap (sorted map)
+  </Card>
+  <Card title="Queue" icon="bars-staggered">
+    FIFO data structure
+    - LinkedList
+    - PriorityQueue
+  </Card>
+</CardGroup>
+
+```java
+import java.util.*;
+
+public class CollectionsDemo {
+    public static void main(String[] args) {
+        // List example
+        List<String> list = new ArrayList<>();
+        list.add("Java");
+        list.add("Python");
+        list.add("JavaScript");
+        
+        // Set example
+        Set<Integer> set = new HashSet<>();
+        set.add(1);
+        set.add(2);
+        set.add(2);  // Duplicate, will not be added
+        
+        // Map example
+        Map<String, Integer> map = new HashMap<>();
+        map.put("Alice", 25);
+        map.put("Bob", 30);
+        
+        // Iteration
+        for (String item : list) {
+            System.out.println(item);
+        }
+        
+        // Lambda with streams (Java 8+)
+        list.stream()
+            .filter(s -> s.startsWith("J"))
+            .forEach(System.out::println);
+    }
+}
+```
+
+## Best Practices
+
+<Steps>
+  <Step title="Follow Naming Conventions">
+    - Classes: PascalCase (e.g., `UserService`)
+    - Methods and variables: camelCase (e.g., `getUserName`)
+    - Constants: UPPER_SNAKE_CASE (e.g., `MAX_SIZE`)
+  </Step>
+  
+  <Step title="Use Proper Access Modifiers">
+    - Keep instance variables private
+    - Use getters and setters for access
+    - Make classes and methods public only when necessary
+  </Step>
+  
+  <Step title="Handle Exceptions Properly">
+    - Catch specific exceptions
+    - Don't swallow exceptions silently
+    - Use try-with-resources for resource management
+  </Step>
+  
+  <Step title="Write Clean Code">
+    - Keep methods short and focused
+    - Use meaningful variable names
+    - Add comments for complex logic
+    - Follow SOLID principles
+  </Step>
+</Steps>
+
+## Further Reading
+
+<CardGroup>
+  <Card title="JVM Internals" icon="microchip" href="/topics/java/jvm">
+    Learn about Java Virtual Machine architecture
+  </Card>
+  <Card title="Concurrency" icon="arrows-spin" href="/topics/java/concurrency">
+    Master multithreading in Java
+  </Card>
+  <Card title="Spring Framework" icon="leaf" href="/topics/spring/spring-framework">
+    Explore enterprise Java development
+  </Card>
+</CardGroup>

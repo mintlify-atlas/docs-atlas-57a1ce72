@@ -1,0 +1,424 @@
+---
+title: Dynamic Programming Patterns
+description: Master dynamic programming with common patterns, knapsack problems, and optimization techniques
+---
+
+# Dynamic Programming Patterns
+
+Dynamic Programming (DP) is an optimization technique that solves complex problems by breaking them down into simpler subproblems.
+
+## Core Concepts
+
+<Note>
+**Dynamic Programming is applicable when:**
+1. **Optimal Substructure**: Optimal solution contains optimal solutions to subproblems
+2. **Overlapping Subproblems**: Same subproblems are solved multiple times
+</Note>
+
+## Knapsack Problems
+
+### 0/1 Knapsack Problem
+
+Given N items with weights and values, maximize value in a knapsack of capacity W. Each item can be used once.
+
+#### 2D DP Approach
+
+```java
+public int knapsack(int[] weights, int[] values, int W) {
+    int n = weights.length;
+    int[][] dp = new int[n + 1][W + 1];
+    
+    // dp[i][j] = max value using first i items with capacity j
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= W; j++) {
+            if (weights[i - 1] <= j) {
+                // Can include item i
+                dp[i][j] = Math.max(
+                    dp[i - 1][j],                          // Don't take
+                    dp[i - 1][j - weights[i - 1]] + values[i - 1]  // Take
+                );
+            } else {
+                // Cannot include item i
+                dp[i][j] = dp[i - 1][j];
+            }
+        }
+    }
+    
+    return dp[n][W];
+}
+```
+
+#### 1D DP Approach (Space Optimized)
+
+```java
+public int knapsack(int[] weights, int[] values, int W) {
+    int[] dp = new int[W + 1];
+    
+    // Must iterate items first, then capacity backwards
+    for (int i = 0; i < weights.length; i++) {
+        for (int j = W; j >= weights[i]; j--) {
+            dp[j] = Math.max(dp[j], dp[j - weights[i]] + values[i]);
+        }
+    }
+    
+    return dp[W];
+}
+```
+
+<Warning>
+**Critical for 0/1 Knapsack:**
+- 1D DP must iterate capacity **backwards** (large to small)
+- This ensures each item is used at most once
+</Warning>
+
+### Complete Knapsack Problem
+
+Each item can be used unlimited times.
+
+```java
+public int completeKnapsack(int[] weights, int[] values, int W) {
+    int[] dp = new int[W + 1];
+    
+    // Iterate capacity forwards for unlimited items
+    for (int i = 0; i < weights.length; i++) {
+        for (int j = weights[i]; j <= W; j++) {
+            dp[j] = Math.max(dp[j], dp[j - weights[i]] + values[i]);
+        }
+    }
+    
+    return dp[W];
+}
+```
+
+### Knapsack Variations
+
+<AccordionGroup>
+  <Accordion title="Can Fill Knapsack?">
+    **Formula**: `dp[j] = max(dp[j], dp[j - nums[i]] + nums[i])`
+    
+    **Problems**:
+    - LeetCode 416: Partition Equal Subset Sum
+    - LeetCode 1049: Last Stone Weight II
+  </Accordion>
+  
+  <Accordion title="Count Ways to Fill">
+    **Formula**: `dp[j] += dp[j - nums[i]]`
+    
+    **Problems**:
+    - LeetCode 494: Target Sum
+    - LeetCode 518: Coin Change II
+    - LeetCode 377: Combination Sum IV
+  </Accordion>
+  
+  <Accordion title="Maximum Value">
+    **Formula**: `dp[j] = max(dp[j], dp[j - weight[i]] + value[i])`
+    
+    **Problems**:
+    - LeetCode 474: Ones and Zeroes
+  </Accordion>
+  
+  <Accordion title="Minimum Items">
+    **Formula**: `dp[j] = min(dp[j], dp[j - coins[i]] + 1)`
+    
+    **Problems**:
+    - LeetCode 322: Coin Change
+    - LeetCode 279: Perfect Squares
+  </Accordion>
+</AccordionGroup>
+
+## Iteration Order
+
+### 0/1 Knapsack Order
+
+```java
+// 2D DP: Either order works
+for (int i = 0; i < items; i++) {
+    for (int j = 0; j <= capacity; j++) {
+        // Process
+    }
+}
+
+// 1D DP: Must iterate items first, capacity backwards
+for (int i = 0; i < items; i++) {
+    for (int j = capacity; j >= weight[i]; j--) {
+        dp[j] = max(dp[j], dp[j - weight[i]] + value[i]);
+    }
+}
+```
+
+### Complete Knapsack Order
+
+```java
+// For combinations (order doesn't matter)
+for (int i = 0; i < items; i++) {
+    for (int j = weight[i]; j <= capacity; j++) {
+        dp[j] += dp[j - weight[i]];
+    }
+}
+
+// For permutations (order matters)
+for (int j = 0; j <= capacity; j++) {
+    for (int i = 0; i < items; i++) {
+        if (weight[i] <= j) {
+            dp[j] += dp[j - weight[i]];
+        }
+    }
+}
+```
+
+## Classic Problems
+
+### Problem 1: Partition Equal Subset Sum
+
+**LeetCode 416**: Can partition array into two subsets with equal sum?
+
+```java
+class Solution {
+    public boolean canPartition(int[] nums) {
+        int sum = 0;
+        for (int num : nums) sum += num;
+        
+        if (sum % 2 == 1) return false;
+        int target = sum / 2;
+        
+        boolean[] dp = new boolean[target + 1];
+        dp[0] = true;
+        
+        for (int i = 0; i < nums.length; i++) {
+            for (int j = target; j >= nums[i]; j--) {
+                dp[j] = dp[j] || dp[j - nums[i]];
+            }
+        }
+        
+        return dp[target];
+    }
+}
+```
+
+### Problem 2: Target Sum
+
+**LeetCode 494**: Count ways to add +/- to nums to reach target.
+
+```java
+class Solution {
+    public int findTargetSumWays(int[] nums, int target) {
+        int sum = 0;
+        for (int num : nums) sum += num;
+        
+        if ((sum + target) % 2 == 1 || (sum + target) / 2 < 0) {
+            return 0;
+        }
+        
+        int plus = (sum + target) / 2;
+        int[] dp = new int[plus + 1];
+        dp[0] = 1;
+        
+        for (int i = 0; i < nums.length; i++) {
+            for (int j = plus; j >= nums[i]; j--) {
+                dp[j] += dp[j - nums[i]];
+            }
+        }
+        
+        return dp[plus];
+    }
+}
+```
+
+<Accordion title="Mathematical Insight">
+Let positive sum = P, negative sum = N:
+- P + N = sum
+- P - N = target
+- Solving: P = (sum + target) / 2
+
+Problem becomes: find count of subsets with sum P.
+</Accordion>
+
+### Problem 3: Combination Sum IV (Permutations)
+
+**LeetCode 377**: Count permutations that sum to target.
+
+```java
+class Solution {
+    public int combinationSum4(int[] nums, int target) {
+        int[] dp = new int[target + 1];
+        dp[0] = 1;
+        
+        // Iterate target first for permutations
+        for (int i = 1; i <= target; i++) {
+            for (int num : nums) {
+                if (i >= num) {
+                    dp[i] += dp[i - num];
+                }
+            }
+        }
+        
+        return dp[target];
+    }
+}
+```
+
+### Problem 4: Coin Change
+
+**LeetCode 322**: Minimum coins needed to make amount.
+
+```java
+class Solution {
+    public int coinChange(int[] coins, int amount) {
+        int[] dp = new int[amount + 1];
+        Arrays.fill(dp, Integer.MAX_VALUE);
+        dp[0] = 0;
+        
+        for (int coin : coins) {
+            for (int i = coin; i <= amount; i++) {
+                if (dp[i - coin] != Integer.MAX_VALUE) {
+                    dp[i] = Math.min(dp[i], dp[i - coin] + 1);
+                }
+            }
+        }
+        
+        return dp[amount] == Integer.MAX_VALUE ? -1 : dp[amount];
+    }
+}
+```
+
+## Stock Trading Problems
+
+### Problem 1: Best Time to Buy and Sell Stock
+
+**LeetCode 121**: Buy and sell once for maximum profit.
+
+```java
+class Solution {
+    public int maxProfit(int[] prices) {
+        int n = prices.length;
+        int[][] dp = new int[n][2];
+        
+        // dp[i][0] = max profit on day i without stock
+        // dp[i][1] = max profit on day i with stock
+        dp[0][1] = -prices[0];
+        
+        for (int i = 1; i < n; i++) {
+            dp[i][0] = Math.max(dp[i-1][0], dp[i-1][1] + prices[i]);
+            dp[i][1] = Math.max(dp[i-1][1], -prices[i]); // Can only buy once
+        }
+        
+        return dp[n-1][0];
+    }
+}
+```
+
+### Problem 2: Best Time to Buy and Sell Stock II
+
+**LeetCode 122**: Buy and sell multiple times.
+
+```java
+class Solution {
+    public int maxProfit(int[] prices) {
+        int n = prices.length;
+        int[][] dp = new int[n][2];
+        dp[0][1] = -prices[0];
+        
+        for (int i = 1; i < n; i++) {
+            dp[i][0] = Math.max(dp[i-1][0], dp[i-1][1] + prices[i]);
+            dp[i][1] = Math.max(dp[i-1][1], dp[i-1][0] - prices[i]); // Can buy after selling
+        }
+        
+        return dp[n-1][0];
+    }
+}
+```
+
+### Problem 3: Best Time to Buy and Sell Stock III
+
+**LeetCode 123**: At most 2 transactions.
+
+```java
+class Solution {
+    public int maxProfit(int[] prices) {
+        int n = prices.length;
+        int[][] dp = new int[n][5];
+        
+        // 0: no operation
+        // 1: first buy, 2: first sell
+        // 3: second buy, 4: second sell
+        dp[0][1] = -prices[0];
+        dp[0][3] = -prices[0];
+        
+        for (int i = 1; i < n; i++) {
+            dp[i][1] = Math.max(dp[i-1][0] - prices[i], dp[i-1][1]);
+            dp[i][2] = Math.max(dp[i-1][1] + prices[i], dp[i-1][2]);
+            dp[i][3] = Math.max(dp[i-1][2] - prices[i], dp[i-1][3]);
+            dp[i][4] = Math.max(dp[i-1][3] + prices[i], dp[i-1][4]);
+        }
+        
+        return dp[n-1][4];
+    }
+}
+```
+
+### Problem 4: Best Time to Buy and Sell Stock with Cooldown
+
+**LeetCode 309**: With 1-day cooldown after selling.
+
+```java
+class Solution {
+    public int maxProfit(int[] prices) {
+        int n = prices.length;
+        if (n == 1) return 0;
+        
+        int[][] dp = new int[n][4];
+        // 0: holding stock
+        // 1: not holding (can buy)
+        // 2: just sold (cannot buy)
+        // 3: cooldown
+        
+        dp[0][0] = -prices[0];
+        
+        for (int i = 1; i < n; i++) {
+            dp[i][0] = Math.max(dp[i-1][0], 
+                               Math.max(dp[i-1][1], dp[i-1][3]) - prices[i]);
+            dp[i][1] = Math.max(dp[i-1][1], dp[i-1][3]);
+            dp[i][2] = dp[i-1][0] + prices[i];
+            dp[i][3] = dp[i-1][2];
+        }
+        
+        return Math.max(dp[n-1][2], Math.max(dp[n-1][1], dp[n-1][3]));
+    }
+}
+```
+
+## DP Patterns Summary
+
+<CardGroup cols={2}>
+  <Card title="Linear DP" icon="arrow-right">
+    Single sequence problems: Climbing Stairs, House Robber
+  </Card>
+  <Card title="Interval DP" icon="brackets-curly">
+    Range problems: Burst Balloons, Palindrome Partitioning
+  </Card>
+  <Card title="Knapsack DP" icon="bag-shopping">
+    Subset selection: Partition, Target Sum, Coin Change
+  </Card>
+  <Card title="State Machine DP" icon="diagram-project">
+    Multiple states: Stock Trading, Game Theory
+  </Card>
+</CardGroup>
+
+## Debugging Tips
+
+<Warning>
+**Common Mistakes:**
+1. **Iteration order** - Wrong order in knapsack problems
+2. **Initialization** - Forgetting to set base cases
+3. **State definition** - Unclear what dp[i] represents
+4. **Boundary conditions** - Index out of bounds errors
+</Warning>
+
+<Tip>
+**Problem-Solving Steps:**
+1. Define state: What does `dp[i]` mean?
+2. Find recurrence: How to compute `dp[i]` from previous states?
+3. Initialize: Set base cases
+4. Compute order: Determine iteration order
+5. Get answer: Where is the final result?
+</Tip>

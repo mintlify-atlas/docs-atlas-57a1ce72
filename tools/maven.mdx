@@ -1,0 +1,564 @@
+---
+title: Maven 构建工具
+description: Maven项目管理和构建工具的安装、配置、依赖管理和生命周期
+---
+
+## Maven 简介
+
+Maven 是一个项目管理和构建自动化工具,主要用于 Java 项目的依赖管理和项目构建。
+
+## 下载与安装
+
+### 下载 Maven
+
+- 官网: [Maven – Welcome to Apache Maven](http://maven.apache.org/)
+- 下载地址: [Maven – Download Apache Maven](http://maven.apache.org/download.cgi)
+
+### 安装步骤
+
+<Steps>
+  <Step title="解压安装">
+    Maven 属于绿色版软件,解压即安装。将下载的压缩包解压到合适的目录。
+  </Step>
+  
+  <Step title="配置 JAVA_HOME">
+    Maven 依赖 Java,需要先配置 JAVA_HOME 环境变量。
+  </Step>
+  
+  <Step title="配置 MAVEN_HOME">
+    新建系统变量 `MAVEN_HOME`,值为 Maven 的安装路径。
+  </Step>
+  
+  <Step title="配置 Path">
+    编辑系统 Path 变量,新建 `%MAVEN_HOME%\bin`。
+  </Step>
+  
+  <Step title="验证安装">
+    打开命令行,输入:
+    ```bash
+    mvn -version
+    ```
+    显示版本信息即安装成功。
+  </Step>
+</Steps>
+
+## 基础概念
+
+### 仓库
+
+Maven 仓库用于存储资源,包含各种 jar 包。
+
+**仓库分类:**
+
+- **本地仓库**: 自己电脑上存储资源的仓库,连接远程仓库获取资源
+- **远程仓库**: 非本机电脑上的仓库,为本地仓库提供资源
+  - **中央仓库**: Maven 团队维护,存储所有资源的仓库
+  - **私服**: 部门/公司范围内存储资源的仓库,从中央仓库获取资源
+
+**私服的作用:**
+- 保存具有版权的资源,包含购买或自主研发的 jar
+- 一定范围内共享资源,仅对内部开放,不对外共享
+
+### 坐标
+
+Maven 中的坐标用于描述仓库中资源的位置。
+
+**坐标主要组成:**
+
+- `groupId`: 定义当前 Maven 项目隶属组织名称(通常是域名反写,如 `org.mybatis`)
+- `artifactId`: 定义当前 Maven 项目名称(通常是模块名称,如 CRM、SMS)
+- `version`: 定义当前项目版本号
+- `packaging`: 定义该项目的打包方式(jar/war)
+
+示例:
+
+```xml
+<groupId>com.study</groupId>
+<artifactId>project-java</artifactId>
+<version>1.0</version>
+<packaging>jar</packaging>
+```
+
+### 配置文件
+
+#### setting.xml 基本配置
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 
+                        http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+    <!-- 本地仓库位置 -->
+    <localRepository>D:/Program/.m2/repository</localRepository>
+
+    <!-- 是否需要交互输入 -->
+    <interactiveMode>true</interactiveMode>
+
+    <!-- 离线模式 -->
+    <offline>false</offline>
+
+    <!-- 镜像配置 -->
+    <mirrors>
+        <mirror>
+            <id>nexus-aliyun</id>
+            <mirrorOf>central</mirrorOf>
+            <name>Nexus aliyun</name>
+            <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+        </mirror>
+    </mirrors>
+
+    <!-- 配置文件 -->
+    <profiles>
+        <profile>
+            <id>default</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+                <jdk>1.8</jdk>
+            </activation>
+        </profile>
+    </profiles>
+</settings>
+```
+
+### 本地仓库配置
+
+**默认位置:**
+
+```xml
+<localRepository>${user.home}/.m2/repository</localRepository>
+```
+
+当前目录位置为登录用户名所在目录下的 `.m2` 文件夹中。
+
+**自定义位置:**
+
+```xml
+<localRepository>D:\maven\repository</localRepository>
+```
+
+### 远程仓库配置
+
+Maven 默认连接的中央仓库位置(在 `pom-4.0.0.xml` 中):
+
+```xml
+<repositories>
+  <repository>
+    <id>central</id>
+    <name>Central Repository</name>
+    <url>https://repo.maven.apache.org/maven2</url>
+    <layout>default</layout>
+    <snapshots>
+      <enabled>false</enabled>
+    </snapshots>
+  </repository>
+</repositories>
+```
+
+**配置阿里云镜像仓库:**
+
+```xml
+<mirrors>
+  <mirror>
+    <id>nexus-aliyun</id>
+    <mirrorOf>central</mirrorOf>
+    <name>Nexus aliyun</name>
+    <url>http://maven.aliyun.com/nexus/content/groups/public</url>
+  </mirror>
+</mirrors>
+```
+
+## Maven 项目结构
+
+```
+├── Project
+│   └── java-project
+│       └── src
+│           ├── main
+│           │   ├── java
+│           │   └── resources
+│           └── test
+│               ├── java
+│               └── resources
+│       └── pom.xml
+```
+
+### pom.xml 示例
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project 
+    xmlns="http://maven.apache.org/POM/4.0.0" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                        http://maven.apache.org/maven-v4_0_0.xsd">
+    <groupId>com.study</groupId>
+    <artifactId>project-java</artifactId>
+    <version>1.0</version>
+    <packaging>jar</packaging>
+    
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+        </dependency>
+    </dependencies>
+</project>
+```
+
+## Maven 构建命令
+
+Maven 构建命令使用 `mvn` 开头,可以一次执行多个命令,使用空格分割。
+
+### 基本命令
+
+```bash
+mvn compile   # 编译
+mvn clean     # 清理
+mvn test      # 测试
+mvn package   # 打包
+mvn install   # 安装到本地仓库
+```
+
+<Note>
+  打包命令会先进行编译、测试,然后打包,确保项目的正确性。
+</Note>
+
+### 插件创建工程
+
+**创建 Java 工程:**
+
+```bash
+mvn archetype:generate \
+  -DgroupId=com.frx \
+  -DartifactId=java-project \
+  -DarchetypeArtifactId=maven-archetype-quickstart \
+  -Dversion=0.0.1-snapshot \
+  -DinteractiveMode=false
+```
+
+**创建 Web 工程:**
+
+```bash
+mvn archetype:generate \
+  -DgroupId=com.frx \
+  -DartifactId=web-project \
+  -DarchetypeArtifactId=maven-archetype-webapp \
+  -Dversion=0.0.1-snapshot \
+  -DinteractiveMode=false
+```
+
+## 依赖管理
+
+### 依赖配置
+
+```xml
+<dependencies>
+  <dependency>
+    <groupId>junit</groupId>
+    <artifactId>junit</artifactId>
+    <version>4.13</version>
+    <scope>test</scope>
+  </dependency>
+</dependencies>
+```
+
+### 依赖传递
+
+- **直接依赖**: 在当前项目中通过依赖配置建立的依赖关系
+- **间接依赖**: 被依赖的资源如果依赖其他资源,当前项目间接依赖其他资源
+
+<Warning>
+  依赖具有传递性,需要注意依赖冲突问题。
+</Warning>
+
+### 依赖冲突解决
+
+**路径优先**: 当依赖中出现相同资源时,层级越深优先级越低,层级越浅优先级越高。
+
+**声明优先**: 当资源在相同层级被依赖时,配置顺序靠前的覆盖配置顺序靠后的。
+
+**特殊优先**: 当同级配置了相同资源的不同版本,后配置的覆盖先配置的。
+
+### 可选依赖
+
+可选依赖指对外隐藏当前所依赖的资源:
+
+```xml
+<dependency>
+  <groupId>log4j</groupId>
+  <artifactId>log4j</artifactId>
+  <version>1.2.14</version>
+  <optional>true</optional>
+</dependency>
+```
+
+### 排除依赖
+
+主动断开依赖的资源,被排除的资源无需指定版本:
+
+```xml
+<dependency>
+  <groupId>com.frx03</groupId>
+  <artifactId>project03</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <exclusions>
+    <exclusion>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+    </exclusion>
+  </exclusions>
+</dependency>
+```
+
+### 依赖范围
+
+通过 `scope` 标签设定依赖的作用范围。
+
+| scope | 主代码 | 测试代码 | 打包 | 示例 |
+|-------|--------|----------|------|------|
+| compile(默认) | Y | Y | Y | log4j |
+| test | | Y | | junit |
+| provided | Y | Y | | servlet-api |
+| runtime | | | Y | jdbc |
+
+示例:
+
+```xml
+<dependency>
+  <groupId>org.mybatis</groupId>
+  <artifactId>mybatis</artifactId>
+  <version>3.5.3</version>
+  <scope>test</scope>
+</dependency>
+```
+
+### 依赖范围传递性
+
+带有依赖范围的资源在进行传递时,作用范围将受到影响。
+
+| | compile | test | provided | runtime |
+|---------|---------|------|----------|----------|
+| compile | compile | - | - | runtime |
+| test | test | - | - | test |
+| provided | provided | - | provided | provided |
+| runtime | runtime | - | - | runtime |
+
+## 生命周期与插件
+
+### 项目构建生命周期
+
+Maven 对项目构建的生命周期划分为 3 套:
+
+- **clean**: 清理工作
+- **default**: 核心工作,如编译、测试、打包、部署等
+- **site**: 产生报告、发布站点等
+
+### clean 生命周期
+
+- `pre-clean`: 执行清理前需要完成的工作
+- `clean`: 移除所有上一次构建生成的文件
+- `post-clean`: 执行清理后需要立刻完成的工作
+
+### default 构建生命周期
+
+主要阶段:
+
+1. `validate`: 验证项目
+2. `compile`: 编译源代码
+3. `test`: 测试编译后的代码
+4. `package`: 打包编译后的代码
+5. `verify`: 验证包
+6. `install`: 安装包到本地仓库
+7. `deploy`: 部署到远程仓库
+
+<Note>
+  执行某个阶段时,会先执行该阶段之前的所有阶段。
+</Note>
+
+### site 构建生命周期
+
+- `pre-site`: 执行生成站点文档前需要完成的工作
+- `site`: 生成项目的站点文档
+- `post-site`: 执行生成站点文档后需要完成的工作
+- `site-deploy`: 将生成的站点文档部署到服务器
+
+### 插件配置
+
+插件与生命周期内的阶段绑定,在执行到对应生命周期时执行对应的插件功能。
+
+**Tomcat7 运行插件:**
+
+```xml
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.apache.tomcat.maven</groupId>
+      <artifactId>tomcat7-maven-plugin</artifactId>
+      <version>2.1</version>
+      <configuration>
+        <port>9000</port>
+        <path>/</path>
+      </configuration>
+    </plugin>
+  </plugins>
+</build>
+```
+
+**源代码打包插件:**
+
+```xml
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-source-plugin</artifactId>
+  <version>2.2.1</version>
+  <executions>
+    <execution>
+      <goals>
+        <goal>jar</goal>
+      </goals>
+      <phase>generate-test-resources</phase>
+    </execution>
+  </executions>
+</plugin>
+```
+
+## IDEA 中使用 Maven
+
+### 配置 Maven
+
+<Steps>
+  <Step title="打开设置">
+    File -> Settings -> Maven
+  </Step>
+  
+  <Step title="配置路径">
+    - Maven home path: Maven 安装目录
+    - User settings file: settings.xml 路径
+    - Local repository: 本地仓库路径
+  </Step>
+</Steps>
+
+### 创建项目
+
+<Tabs>
+  <Tab title="手工创建">
+    1. 新建 Module,选择 Maven
+    2. 填写 GroupId 和 ArtifactId
+    3. 手动创建目录结构:
+       - src/main/java
+       - src/main/resources
+       - src/test/java
+       - src/test/resources
+  </Tab>
+  
+  <Tab title="使用原型">
+    **Java 项目:**
+    - 选择 `maven-archetype-quickstart`
+    
+    **Web 项目:**
+    - 选择 `maven-archetype-webapp`
+  </Tab>
+</Tabs>
+
+## 模块化开发
+
+### 分模块结构
+
+```
+ssm-parent
+├── ssm-pojo      (实体类)
+├── ssm-dao       (数据访问层)
+├── ssm-service   (业务逻辑层)
+└── ssm-controller(表现层)
+```
+
+### 模块依赖关系
+
+```xml
+<!-- ssm-dao 依赖 ssm-pojo -->
+<dependency>
+  <groupId>com.frx01</groupId>
+  <artifactId>ssm-pojo</artifactId>
+  <version>1.0-SNAPSHOT</version>
+</dependency>
+
+<!-- ssm-service 依赖 ssm-dao -->
+<dependency>
+  <groupId>com.frx01</groupId>
+  <artifactId>ssm-dao</artifactId>
+  <version>1.0-SNAPSHOT</version>
+</dependency>
+
+<!-- ssm-controller 依赖 ssm-service -->
+<dependency>
+  <groupId>com.frx01</groupId>
+  <artifactId>ssm-service</artifactId>
+  <version>1.0-SNAPSHOT</version>
+</dependency>
+```
+
+<Note>
+  模块开发时,需要先对被依赖的模块执行 `install` 命令,将其安装到本地仓库。
+</Note>
+
+## 最佳实践
+
+<CardGroup cols={2}>
+  <Card title="统一依赖版本" icon="code-branch">
+    使用 properties 统一管理版本号:
+    ```xml
+    <properties>
+      <spring.version>5.1.9.RELEASE</spring.version>
+    </properties>
+    ```
+  </Card>
+  
+  <Card title="使用父 POM" icon="sitemap">
+    通过父 POM 统一管理公共依赖和插件配置。
+  </Card>
+  
+  <Card title="合理设置 scope" icon="layer-group">
+    根据实际需要设置依赖范围,避免打包不必要的依赖。
+  </Card>
+  
+  <Card title="定期更新依赖" icon="arrows-rotate">
+    定期检查并更新依赖版本,修复安全漏洞。
+  </Card>
+</CardGroup>
+
+## 常见问题
+
+<AccordionGroup>
+  <Accordion title="依赖下载失败怎么办?">
+    1. 检查网络连接
+    2. 配置阿里云镜像
+    3. 删除本地仓库中的缓存文件
+    4. 使用 `-U` 参数强制更新:
+    ```bash
+    mvn clean install -U
+    ```
+  </Accordion>
+  
+  <Accordion title="如何跳过测试?">
+    ```bash
+    mvn clean install -DskipTests
+    # 或
+    mvn clean install -Dmaven.test.skip=true
+    ```
+  </Accordion>
+  
+  <Accordion title="如何查看依赖树?">
+    ```bash
+    mvn dependency:tree
+    ```
+  </Accordion>
+  
+  <Accordion title="如何解决依赖冲突?">
+    1. 使用 `mvn dependency:tree` 查看依赖树
+    2. 使用 `<exclusions>` 排除冲突的依赖
+    3. 使用 `<dependencyManagement>` 统一版本
+  </Accordion>
+</AccordionGroup>

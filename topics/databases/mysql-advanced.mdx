@@ -1,0 +1,550 @@
+---
+title: 'MySQL Advanced Topics'
+description: 'MySQL optimization, indexes, transactions, and performance tuning'
+icon: 'gauge-high'
+---
+
+## Index Fundamentals
+
+### Why Use Indexes?
+
+Indexes are data structures that help MySQL find data records quickly, similar to a book's table of contents.
+
+**Without Index**: Full table scan required
+- Sequential reads from disk
+- Multiple I/O operations
+- Time complexity: O(n)
+
+**With Index**: Direct location via B+Tree
+- Logarithmic search time
+- Reduced disk I/O
+- Time complexity: O(log n)
+
+<Info>
+The primary goal of indexes is to **reduce disk I/O operations** and accelerate query speed.
+</Info>
+
+### Index Data Structures
+
+#### B+Tree Structure
+
+MySQL InnoDB uses B+Tree as the default index structure:
+
+```
+Root Node (Level 2)
+    ├── Internal Node (Level 1)
+    │     ├── Leaf Node (Level 0) → Data Records
+    │     └── Leaf Node (Level 0) → Data Records
+    └── Internal Node (Level 1)
+          ├── Leaf Node (Level 0) → Data Records
+          └── Leaf Node (Level 0) → Data Records
+```
+
+**B+Tree Characteristics**:
+- All data stored in leaf nodes
+- Leaf nodes linked as doubly-linked list
+- Internal nodes only store keys and pointers
+- Height typically 3-4 levels for millions of records
+
+<Tip>
+**Why B+Tree is Fast**:
+- With 100 records per leaf node and 1000 keys per internal node:
+  - Level 1: 1,000 records
+  - Level 2: 100,000 records
+  - Level 3: 10,000,000 records
+  - Level 4: 1,000,000,000 records
+</Tip>
+
+### Clustered vs Non-Clustered Indexes
+
+#### Clustered Index (Primary Key)
+
+```sql
+CREATE TABLE users (
+    id INT PRIMARY KEY,      -- Clustered index
+    name VARCHAR(50),
+    age INT
+);
+```
+
+**Characteristics**:
+- Data stored with index (index is data)
+- One per table (typically primary key)
+- Leaf nodes contain complete row data
+- Fast for primary key lookups
+
+#### Secondary Index (Non-Clustered)
+
+```sql
+-- Create secondary index
+CREATE INDEX idx_name ON users(name);
+```
+
+**Characteristics**:
+- Leaf nodes store primary key values
+- Multiple per table allowed
+- Requires "back to table" (回表) operation
+- Stores: index column + primary key
+
+### Index Types
+
+#### Single Column Index
+
+```sql
+-- Create index on single column
+CREATE INDEX idx_salary ON employees(salary);
+
+-- Use in query
+SELECT * FROM employees WHERE salary > 8000;
+```
+
+#### Composite Index
+
+```sql
+-- Create index on multiple columns
+CREATE INDEX idx_dept_salary ON employees(department_id, salary);
+
+-- Follows leftmost prefix rule
+SELECT * FROM employees 
+WHERE department_id = 10 AND salary > 5000;  -- Uses index
+
+SELECT * FROM employees 
+WHERE salary > 5000;  -- Doesn't use index (missing leftmost column)
+```
+
+<Warning>
+**Leftmost Prefix Rule**: Composite index (a, b, c) works for:
+- (a)
+- (a, b)
+- (a, b, c)
+
+But NOT for: (b), (c), (b, c)
+</Warning>
+
+#### Unique Index
+
+```sql
+-- Enforce uniqueness
+CREATE UNIQUE INDEX idx_email ON users(email);
+
+-- Or in table definition
+CREATE TABLE users (
+    id INT PRIMARY KEY,
+    email VARCHAR(100) UNIQUE
+);
+```
+
+## Query Optimization
+
+### Index Optimization Strategies
+
+#### 1. Covering Index
+
+```sql
+-- Create covering index
+CREATE INDEX idx_dept_salary_name 
+ON employees(department_id, salary, name);
+
+-- Query only uses index columns (no table access needed)
+SELECT department_id, salary, name
+FROM employees
+WHERE department_id = 10;
+```
+
+<Info>
+**Covering Index**: When all queried columns exist in the index, avoiding table access.
+</Info>
+
+#### 2. Index Hints
+
+```sql
+-- Force index usage
+SELECT * FROM employees 
+FORCE INDEX (idx_salary)
+WHERE salary > 8000;
+
+-- Ignore specific index
+SELECT * FROM employees 
+IGNORE INDEX (idx_age)
+WHERE age > 30;
+```
+
+#### 3. Avoid Index Failure
+
+```sql
+-- BAD: Function on indexed column
+SELECT * FROM employees WHERE YEAR(hire_date) = 2020;
+
+-- GOOD: Rewrite without function
+SELECT * FROM employees 
+WHERE hire_date >= '2020-01-01' AND hire_date < '2021-01-01';
+
+-- BAD: Implicit type conversion
+SELECT * FROM users WHERE phone = 13800138000;  -- phone is VARCHAR
+
+-- GOOD: Explicit type match
+SELECT * FROM users WHERE phone = '13800138000';
+
+-- BAD: Leading wildcard
+SELECT * FROM users WHERE name LIKE '%zhang%';
+
+-- GOOD: Prefix match
+SELECT * FROM users WHERE name LIKE 'zhang%';
+```
+
+### EXPLAIN Analysis
+
+```sql
+EXPLAIN SELECT * FROM employees WHERE salary > 8000;
+```
+
+**Key EXPLAIN Columns**:
+
+| Column | Description | Important Values |
+|--------|-------------|------------------|
+| **type** | Join type | ALL (worst) → index → range → ref → const (best) |
+| **key** | Index used | NULL means no index |
+| **rows** | Rows examined | Lower is better |
+| **Extra** | Additional info | "Using index" is good, "Using filesort" is bad |
+
+<CodeGroup>
+```sql Good Query
+EXPLAIN SELECT id, name FROM users WHERE id = 1;
+-- type: const
+-- key: PRIMARY
+-- rows: 1
+-- Extra: NULL
+```
+
+```sql Bad Query
+EXPLAIN SELECT * FROM users WHERE name LIKE '%zhang%';
+-- type: ALL
+-- key: NULL
+-- rows: 100000
+-- Extra: Using where
+```
+</CodeGroup>
+
+## Transaction Management
+
+### ACID Properties
+
+<CardGroup cols={2}>
+  <Card title="Atomicity" icon="atom">
+    All operations succeed or all fail. No partial completion.
+  </Card>
+  
+  <Card title="Consistency" icon="check">
+    Database transitions from one valid state to another.
+  </Card>
+  
+  <Card title="Isolation" icon="shield">
+    Concurrent transactions don't interfere with each other.
+  </Card>
+  
+  <Card title="Durability" icon="floppy-disk">
+    Committed changes persist even after system failure.
+  </Card>
+</CardGroup>
+
+### Transaction Operations
+
+```sql
+-- Start transaction
+START TRANSACTION;
+-- or
+BEGIN;
+
+-- Execute operations
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+
+-- Commit changes
+COMMIT;
+
+-- Or rollback if error
+ROLLBACK;
+```
+
+#### Savepoints
+
+```sql
+START TRANSACTION;
+
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+SAVEPOINT sp1;
+
+UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+SAVEPOINT sp2;
+
+UPDATE accounts SET balance = balance - 50 WHERE id = 3;
+
+-- Rollback to savepoint
+ROLLBACK TO sp2;
+
+COMMIT;
+```
+
+### Isolation Levels
+
+```sql
+-- Check current isolation level
+SELECT @@transaction_isolation;
+
+-- Set isolation level
+SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
+```
+
+| Isolation Level | Dirty Read | Non-Repeatable Read | Phantom Read |
+|----------------|------------|---------------------|-------------|
+| **READ UNCOMMITTED** | ✓ | ✓ | ✓ |
+| **READ COMMITTED** | ✗ | ✓ | ✓ |
+| **REPEATABLE READ** (default) | ✗ | ✗ | ✗ |
+| **SERIALIZABLE** | ✗ | ✗ | ✗ |
+
+<Info>
+MySQL default: **REPEATABLE READ**
+PostgreSQL/Oracle default: **READ COMMITTED**
+</Info>
+
+### Locking Mechanisms
+
+#### Row-Level Locks
+
+```sql
+-- Shared lock (S lock) - Read lock
+SELECT * FROM users WHERE id = 1 LOCK IN SHARE MODE;
+
+-- Exclusive lock (X lock) - Write lock
+SELECT * FROM users WHERE id = 1 FOR UPDATE;
+```
+
+#### Deadlock Example
+
+```sql
+-- Transaction 1
+START TRANSACTION;
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;  -- Locks row 1
+UPDATE accounts SET balance = balance + 100 WHERE id = 2;  -- Waits for row 2
+
+-- Transaction 2 (concurrent)
+START TRANSACTION;
+UPDATE accounts SET balance = balance - 50 WHERE id = 2;   -- Locks row 2
+UPDATE accounts SET balance = balance + 50 WHERE id = 1;   -- Waits for row 1 → DEADLOCK!
+```
+
+<Warning>
+**Avoiding Deadlocks**:
+- Access tables/rows in same order
+- Keep transactions short
+- Use appropriate isolation levels
+- Set lock timeout values
+</Warning>
+
+## Storage Engine: InnoDB
+
+### Page Structure
+
+InnoDB manages data in **pages** (default 16KB):
+
+```
+Page (16KB)
+├── Page Header
+├── Infimum + Supremum Records
+├── User Records (data rows)
+├── Free Space
+├── Page Directory
+└── Page Trailer
+```
+
+### Buffer Pool
+
+```sql
+-- Check buffer pool size
+SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
+
+-- Set buffer pool size (in bytes)
+SET GLOBAL innodb_buffer_pool_size = 2147483648;  -- 2GB
+```
+
+**Buffer Pool Benefits**:
+- Caches frequently accessed pages
+- Reduces disk I/O
+- Improves query performance
+
+<Tip>
+Recommended buffer pool size: **60-80% of available RAM** for dedicated DB servers
+</Tip>
+
+## Performance Optimization
+
+### Query Optimization Techniques
+
+#### 1. Limit Result Sets
+
+```sql
+-- Use LIMIT for pagination
+SELECT * FROM users 
+ORDER BY created_at DESC 
+LIMIT 20 OFFSET 0;
+
+-- Better: Use WHERE with index
+SELECT * FROM users 
+WHERE id > 1000
+ORDER BY id 
+LIMIT 20;
+```
+
+#### 2. Avoid SELECT *
+
+```sql
+-- BAD
+SELECT * FROM users WHERE id = 1;
+
+-- GOOD
+SELECT id, name, email FROM users WHERE id = 1;
+```
+
+#### 3. Use EXISTS Instead of IN
+
+```sql
+-- Less efficient
+SELECT * FROM employees 
+WHERE department_id IN (SELECT id FROM departments WHERE name = 'IT');
+
+-- More efficient
+SELECT * FROM employees e
+WHERE EXISTS (
+    SELECT 1 FROM departments d 
+    WHERE d.id = e.department_id AND d.name = 'IT'
+);
+```
+
+#### 4. Optimize JOIN Operations
+
+```sql
+-- Use small table as driving table
+SELECT /*+ LEADING(d e) */ e.name, d.department_name
+FROM departments d
+INNER JOIN employees e ON d.id = e.department_id
+WHERE d.name = 'IT';
+```
+
+<Warning>
+**Join Limit**: Avoid joining more than 3 tables. For complex queries, consider:
+- Denormalization
+- Caching
+- Query splitting
+</Warning>
+
+### Index Design Principles
+
+<AccordionGroup>
+  <Accordion title="When to Create Indexes">
+    ✓ Columns in WHERE clauses
+    ✓ Columns in JOIN conditions
+    ✓ Columns in ORDER BY/GROUP BY
+    ✓ Foreign key columns
+    ✓ Frequently queried columns
+  </Accordion>
+  
+  <Accordion title="When NOT to Create Indexes">
+    ✗ Columns with few distinct values
+    ✗ Tables with frequent INSERT/UPDATE/DELETE
+    ✗ Columns rarely used in queries
+    ✗ Small tables (< 1000 rows)
+    ✗ Columns with large data types (TEXT, BLOB)
+  </Accordion>
+  
+  <Accordion title="Composite Index Order">
+    Order columns by:
+    1. Equality conditions (equals)
+    2. Range conditions (greater than, less than, BETWEEN)
+    3. Sort/group columns (ORDER BY, GROUP BY)
+    4. High cardinality first
+  </Accordion>
+</AccordionGroup>
+
+## Monitoring and Maintenance
+
+### Slow Query Log
+
+```sql
+-- Enable slow query log
+SET GLOBAL slow_query_log = ON;
+SET GLOBAL long_query_time = 2;  -- Queries > 2 seconds
+SET GLOBAL slow_query_log_file = '/var/log/mysql/slow.log';
+
+-- Check slow queries
+SHOW GLOBAL STATUS LIKE 'Slow_queries';
+```
+
+### Index Statistics
+
+```sql
+-- Analyze table to update statistics
+ANALYZE TABLE employees;
+
+-- Show index cardinality
+SHOW INDEX FROM employees;
+
+-- Check index usage
+SELECT * FROM sys.schema_unused_indexes;
+```
+
+### Table Optimization
+
+```sql
+-- Optimize table (reclaim space, rebuild indexes)
+OPTIMIZE TABLE employees;
+
+-- Check table integrity
+CHECK TABLE employees;
+
+-- Repair corrupted table
+REPAIR TABLE employees;
+```
+
+## Best Practices Summary
+
+<CardGroup cols={2}>
+  <Card title="Index Strategy" icon="magnifying-glass">
+    - Create indexes on frequently queried columns
+    - Use composite indexes wisely
+    - Monitor index usage regularly
+    - Remove unused indexes
+  </Card>
+  
+  <Card title="Query Optimization" icon="rocket">
+    - Use EXPLAIN to analyze queries
+    - Avoid SELECT *
+    - Limit result sets
+    - Optimize JOIN operations
+  </Card>
+  
+  <Card title="Transaction Management" icon="shield-halved">
+    - Keep transactions short
+    - Use appropriate isolation levels
+    - Handle deadlocks gracefully
+    - Commit or rollback explicitly
+  </Card>
+  
+  <Card title="Performance Monitoring" icon="chart-line">
+    - Enable slow query log
+    - Monitor buffer pool hit rate
+    - Track query execution time
+    - Regular maintenance tasks
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="MySQL Basics" icon="book" href="/topics/databases/mysql-basics">
+    Review fundamental concepts
+  </Card>
+  
+  <Card title="Redis" icon="bolt" href="/topics/databases/redis">
+    Learn Redis for caching strategies
+  </Card>
+</CardGroup>

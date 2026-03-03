@@ -1,0 +1,388 @@
+---
+title: Binary Search Variations
+description: Master binary search and its variations for efficient searching in sorted data
+---
+
+# Binary Search Variations
+
+Binary search is a fundamental algorithm for searching in sorted arrays with O(log n) time complexity.
+
+## Prerequisites
+
+<Note>
+Binary search requires:
+1. **Sorted data** - The array must be sorted
+2. **Random access** - Direct indexing capability
+3. **Answer existence** - Can verify if candidate is valid in O(1)
+4. **Monotonicity** - Can eliminate half the search space each iteration
+</Note>
+
+## Basic Binary Search Template
+
+### Template 1: Closed Interval [left, right]
+
+```java
+public int binarySearch(int[] nums, int target) {
+    if (target < nums[0] || target > nums[nums.length - 1]) {
+        return -1;
+    }
+    
+    int left = 0, right = nums.length - 1;
+    
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        
+        if (nums[mid] == target) {
+            return mid;
+        } else if (nums[mid] < target) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+    
+    return -1; // Target not found
+}
+```
+
+### Template 2: Half-Open Interval [left, right)
+
+```java
+public int binarySearch(int[] nums, int target) {
+    int left = 0, right = nums.length; // right = n, not n-1
+    
+    while (left < right) { // left < right, not <=
+        int mid = left + (right - left) / 2;
+        
+        if (nums[mid] < target) {
+            left = mid + 1;
+        } else {
+            right = mid; // not mid - 1
+        }
+    }
+    
+    return left; // or right, they're equal
+}
+```
+
+### Template 3: Open Interval (left, right)
+
+```java
+public int binarySearch(int[] nums, int target) {
+    int left = -1, right = nums.length;
+    
+    while (left + 1 < right) {
+        int mid = left + (right - left) / 2;
+        
+        if (nums[mid] < target) {
+            left = mid;
+        } else {
+            right = mid;
+        }
+    }
+    
+    return right;
+}
+```
+
+## Lower Bound and Upper Bound
+
+### Lower Bound (First >= target)
+
+Find the first position where `nums[i] >= target`.
+
+```java
+public int lowerBound(int[] nums, int target) {
+    int left = 0, right = nums.length - 1;
+    
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        
+        if (nums[mid] < target) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+    
+    return left;
+}
+```
+
+<Accordion title="Finding Variations">
+- **First greater than target**: `lowerBound(nums, target + 1)`
+- **Last less than target**: `lowerBound(nums, target) - 1`
+- **Last less than or equal to target**: `lowerBound(nums, target + 1) - 1`
+</Accordion>
+
+### Upper Bound (First > target)
+
+Find the first position where `nums[i] > target`.
+
+```java
+public int upperBound(int[] nums, int target) {
+    int left = 0, right = nums.length - 1;
+    
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        
+        if (nums[mid] <= target) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+    
+    return left;
+}
+```
+
+## Classic Problems
+
+### Problem 1: Find Peak Element
+
+**LeetCode 162**: Find a peak element in an array where `nums[i] > nums[i-1]` and `nums[i] > nums[i+1]`.
+
+```java
+class Solution {
+    public int findPeakElement(int[] nums) {
+        int left = 0, right = nums.length - 1;
+        
+        while (left < right) {
+            int mid = left + (right - left) / 2;
+            
+            if (nums[mid] > nums[mid + 1]) {
+                // Peak is on the left side (including mid)
+                right = mid;
+            } else {
+                // Peak is on the right side
+                left = mid + 1;
+            }
+        }
+        
+        return left;
+    }
+}
+```
+
+<Accordion title="Why This Works">
+If `nums[mid] > nums[mid + 1]`, there must be a peak on the left (including mid) because:
+- If all elements to the left decrease, `nums[0]` is a peak (since `nums[-1] = -∞`)
+- Otherwise, there's an increase followed by decrease, forming a peak
+
+Similar logic applies for the right side.
+</Accordion>
+
+### Problem 2: Search in Rotated Sorted Array
+
+**LeetCode 33**: Search in a rotated sorted array.
+
+```java
+class Solution {
+    public int search(int[] nums, int target) {
+        int left = 0, right = nums.length - 1;
+        
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            
+            if (nums[mid] == target) {
+                return mid;
+            }
+            
+            // Determine which half is sorted
+            if (nums[mid] >= nums[left]) {
+                // Left half is sorted
+                if (nums[left] <= target && target < nums[mid]) {
+                    right = mid - 1;
+                } else {
+                    left = mid + 1;
+                }
+            } else {
+                // Right half is sorted
+                if (nums[mid] < target && target <= nums[right]) {
+                    left = mid + 1;
+                } else {
+                    right = mid - 1;
+                }
+            }
+        }
+        
+        return -1;
+    }
+}
+```
+
+<Note>
+**Key Insight**: At least one half of the array is always sorted. We can determine which half and check if the target lies in that sorted half.
+</Note>
+
+### Problem 3: Closest Nodes in BST
+
+**LeetCode 2476**: Find closest nodes in a Binary Search Tree.
+
+```java
+class Solution {
+    public List<List<Integer>> closestNodes(TreeNode root, List<Integer> queries) {
+        List<Integer> sorted = new ArrayList<>();
+        inorder(root, sorted);
+        
+        int[] arr = sorted.stream().mapToInt(i -> i).toArray();
+        List<List<Integer>> result = new ArrayList<>();
+        
+        for (int query : queries) {
+            int pos = lowerBound(arr, query);
+            
+            int max = (pos < arr.length) ? arr[pos] : -1;
+            
+            int min;
+            if (pos < arr.length && arr[pos] == query) {
+                min = arr[pos];
+            } else if (pos > 0) {
+                min = arr[pos - 1];
+            } else {
+                min = -1;
+            }
+            
+            result.add(Arrays.asList(min, max));
+        }
+        
+        return result;
+    }
+    
+    private void inorder(TreeNode root, List<Integer> list) {
+        if (root == null) return;
+        inorder(root.left, list);
+        list.add(root.val);
+        inorder(root.right, list);
+    }
+    
+    private int lowerBound(int[] arr, int target) {
+        int left = 0, right = arr.length - 1;
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            if (arr[mid] < target) {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+        return left;
+    }
+}
+```
+
+## Binary Search on Answer
+
+Sometimes we binary search on the answer space rather than the input.
+
+### Problem: Minimum Speed to Arrive on Time
+
+```java
+class Solution {
+    public int minSpeedOnTime(int[] dist, double hour) {
+        int left = 1, right = (int) 1e7;
+        int result = -1;
+        
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            
+            if (canArrive(dist, hour, mid)) {
+                result = mid;
+                right = mid - 1; // Try smaller speed
+            } else {
+                left = mid + 1; // Need larger speed
+            }
+        }
+        
+        return result;
+    }
+    
+    private boolean canArrive(int[] dist, double hour, int speed) {
+        double time = 0;
+        for (int i = 0; i < dist.length - 1; i++) {
+            time += Math.ceil((double) dist[i] / speed);
+        }
+        time += (double) dist[dist.length - 1] / speed;
+        return time <= hour;
+    }
+}
+```
+
+## Common Patterns
+
+<AccordionGroup>
+  <Accordion title="Pattern 1: Find Exact Match">
+    Standard binary search returning index or -1
+    ```java
+    if (nums[mid] == target) return mid;
+    else if (nums[mid] < target) left = mid + 1;
+    else right = mid - 1;
+    ```
+  </Accordion>
+  
+  <Accordion title="Pattern 2: Find Boundary">
+    Find first/last position satisfying condition
+    ```java
+    // First position where nums[i] >= target
+    if (nums[mid] < target) left = mid + 1;
+    else right = mid - 1;
+    return left;
+    ```
+  </Accordion>
+  
+  <Accordion title="Pattern 3: Minimize/Maximize">
+    Binary search on answer space
+    ```java
+    while (left < right) {
+        int mid = left + (right - left) / 2;
+        if (canSolve(mid)) right = mid;
+        else left = mid + 1;
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Pattern 4: Rotated Array">
+    Determine sorted half first
+    ```java
+    if (nums[left] <= nums[mid]) {
+        // Left half sorted
+    } else {
+        // Right half sorted
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Debugging Tips
+
+<Warning>
+**Common Mistakes:**
+
+1. **Infinite Loop**: Use `mid = left + (right - left) / 2` when `right = mid`
+2. **Integer Overflow**: Use `left + (right - left) / 2` instead of `(left + right) / 2`
+3. **Off-by-One**: Carefully choose `<=` vs `<` and `mid + 1` vs `mid`
+4. **Wrong Return**: Return `left` for lower bound, not `right`
+</Warning>
+
+<Tip>
+**Verification Technique:**
+
+Test your binary search with:
+- Empty array: `[]`
+- Single element: `[5]`
+- Two elements: `[3, 7]`
+- Target at boundaries: first, last, not found
+</Tip>
+
+## Time Complexity Analysis
+
+| Operation | Time Complexity | Space Complexity |
+|-----------|----------------|------------------|
+| Basic Search | O(log n) | O(1) |
+| With Preprocessing | O(n + q log n) | O(n) |
+| On BST | O(h + log n) | O(h) |
+
+Where:
+- n = array size
+- q = number of queries
+- h = tree height

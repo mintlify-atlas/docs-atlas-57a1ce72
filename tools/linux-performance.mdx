@@ -1,0 +1,627 @@
+---
+title: 'Linux Performance Optimization'
+description: 'System performance analysis and optimization techniques'
+---
+
+## Introduction to Performance Optimization
+
+Linux performance optimization is a systematic approach to identifying bottlenecks and improving system efficiency. Performance issues can stem from CPU, memory, disk I/O, or network resources.
+
+### Performance Fundamentals
+
+Performance optimization involves:
+
+1. **Selecting metrics** to evaluate system performance
+2. **Setting performance goals** for applications and systems
+3. **Performing baseline tests** to establish benchmarks
+4. **Analyzing performance** to locate bottlenecks
+5. **Optimizing** system and application configurations
+6. **Monitoring and alerting** for ongoing performance issues
+
+### Key Performance Indicators
+
+Two core metrics from application perspective:
+
+- **Throughput** - How many requests the system can handle
+- **Latency** - How fast the system responds to requests
+
+From system resource perspective:
+
+- **Utilization** - Percentage of resource capacity used
+- **Saturation** - Degree of resource overload
+- **Errors** - Number of error events
+
+## Understanding Average Load
+
+### What is Average Load?
+
+Average load represents the average number of processes in **runnable** and **uninterruptible** states over time.
+
+- **Runnable state (R)**: Process using CPU or waiting for CPU
+- **Uninterruptible state (D)**: Process in critical kernel operations (usually I/O)
+
+```bash
+# Check system load
+uptime
+02:34:03 up 2 days, 20:14, 1 user, load average: 0.63, 0.83, 0.88
+```
+
+The three numbers represent average load over:
+- Last 1 minute: 0.63
+- Last 5 minutes: 0.83
+- Last 15 minutes: 0.88
+
+### Interpreting Load Average
+
+```bash
+# Check CPU count
+grep 'model name' /proc/cpuinfo | wc -l
+```
+
+**Ideal load**: Load average equals CPU count (100% utilization)
+
+**Load interpretation** (for 2-CPU system):
+- Load = 2.0: Perfect utilization (100%)
+- Load = 1.0: 50% utilization
+- Load = 4.0: System overloaded (200%)
+
+**Rule of thumb**: Investigate when load exceeds **70% of CPU count**
+
+### Load Trends
+
+- **Stable load**: All three values similar (0.63, 0.60, 0.65)
+- **Decreasing load**: 1-min < 15-min (0.63, 0.83, 1.20)
+- **Increasing load**: 1-min > 15-min (1.50, 0.83, 0.60)
+
+## CPU Performance Analysis
+
+### CPU Context Switching
+
+**Context switching** occurs when CPU switches from one task to another, requiring:
+
+1. Saving current task's state (registers, program counter)
+2. Loading next task's state
+3. Jumping to new execution point
+
+Types of context switches:
+
+1. **Process context switch** - Switching between different processes
+2. **Thread context switch** - Switching between threads
+3. **Interrupt context switch** - Handling hardware interrupts
+
+### Monitoring Context Switches
+
+```bash
+# System-wide context switches
+vmstat 5
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 0  0      0 7005360  91564 818900    0    0     0     0   25   33  0  0 100  0  0
+```
+
+Key columns:
+- **cs** - Context switches per second
+- **in** - Interrupts per second
+- **r** - Runnable processes (run queue length)
+- **b** - Blocked processes (uninterruptible sleep)
+
+```bash
+# Per-process context switches
+pidstat -w 5
+Linux 4.15.0 (ubuntu) _x86_64_ (2 CPU)
+08:18:26  UID   PID   cswch/s nvcswch/s  Command
+08:18:31    0     1      0.20      0.00  systemd
+08:18:31    0     8      5.40      0.00  rcu_sched
+```
+
+- **cswch/s** - Voluntary context switches (waiting for resources)
+- **nvcswch/s** - Non-voluntary context switches (time slice expired)
+
+### CPU Usage Scenarios
+
+#### Scenario 1: CPU-Intensive Process
+
+```bash
+# Simulate CPU stress
+stress --cpu 1 --timeout 600
+
+# Monitor load
+watch -d uptime
+
+# Check CPU usage
+mpstat -P ALL 5
+
+# Find culprit process
+pidstat -u 5 1
+```
+
+**Symptoms**: High CPU usage, load average increases, low iowait
+
+#### Scenario 2: I/O-Intensive Process
+
+```bash
+# Simulate I/O stress
+stress -i 1 --timeout 600
+
+# Monitor
+mpstat -P ALL 5
+```
+
+**Symptoms**: High iowait, moderate CPU usage, increased load average
+
+#### Scenario 3: Too Many Processes
+
+```bash
+# Simulate with 8 processes on 2 CPUs
+stress -c 8 --timeout 600
+
+# Check process wait times
+pidstat -u 5 1
+```
+
+**Symptoms**: High %wait values, severe CPU contention, very high load
+
+## Performance Monitoring Tools
+
+### Essential Tools
+
+#### top - Interactive Process Viewer
+
+```bash
+top
+```
+
+Key information:
+- CPU usage by process
+- Memory usage
+- Load average
+- Process states
+
+Useful commands in top:
+- `P` - Sort by CPU usage
+- `M` - Sort by memory usage
+- `k` - Kill process
+- `1` - Show individual CPU cores
+
+#### htop - Enhanced Process Viewer
+
+```bash
+htop
+```
+
+Features:
+- Color-coded interface
+- Mouse support
+- Process tree view
+- Easy sorting and filtering
+
+#### vmstat - Virtual Memory Statistics
+
+```bash
+# Update every 5 seconds
+vmstat 5
+
+# Show 10 samples
+vmstat 5 10
+```
+
+Monitors:
+- Process statistics
+- Memory usage
+- Swap activity
+- I/O statistics
+- CPU usage
+
+#### iostat - I/O Statistics
+
+```bash
+# CPU and device statistics
+iostat -x 5
+
+# Specific device
+iostat -x sda 5
+```
+
+Key metrics:
+- **%util** - Device utilization
+- **await** - Average wait time
+- **r/s, w/s** - Read/write requests per second
+
+#### mpstat - Multi-Processor Statistics
+
+```bash
+# All CPUs, 5-second intervals
+mpstat -P ALL 5
+```
+
+Metrics:
+- **%usr** - User space CPU usage
+- **%sys** - Kernel space CPU usage
+- **%iowait** - Waiting for I/O
+- **%idle** - Idle CPU
+
+#### pidstat - Process Statistics
+
+```bash
+# CPU usage
+pidstat -u 5
+
+# Memory usage
+pidstat -r 5
+
+# I/O statistics
+pidstat -d 5
+
+# Context switches
+pidstat -w 5
+
+# Threads
+pidstat -t 5
+```
+
+### Advanced Monitoring
+
+#### sar - System Activity Reporter
+
+```bash
+# CPU usage
+sar -u 5 10
+
+# Memory usage
+sar -r 5 10
+
+# I/O statistics
+sar -b 5 10
+
+# Network statistics
+sar -n DEV 5 10
+```
+
+#### glances - All-in-One Monitor
+
+```bash
+glances
+```
+
+Shows comprehensive system information:
+- CPU, memory, disk, network
+- Process list
+- Sensors and temperatures
+- Docker containers
+
+## Memory Performance
+
+### Memory Analysis
+
+```bash
+# Memory overview
+free -h
+              total        used        free      shared  buff/cache   available
+Mem:           7.7G        2.1G        3.2G        123M        2.4G        5.2G
+Swap:          2.0G          0B        2.0G
+```
+
+Key metrics:
+- **used** - Memory used by applications
+- **free** - Completely unused memory
+- **buff/cache** - Buffer and cache memory (reclaimable)
+- **available** - Memory available for applications
+
+### Memory Monitoring
+
+```bash
+# Process memory usage
+ps aux --sort=-%mem | head -10
+
+# Detailed memory map
+pmap -x PID
+
+# Memory by process
+top -o %MEM
+```
+
+## Disk I/O Performance
+
+### Disk Space Analysis
+
+```bash
+# Filesystem usage
+df -h
+
+# Directory sizes
+du -sh /var/log/*
+
+# Find large files
+find / -type f -size +100M -exec ls -lh {} \;
+```
+
+### I/O Performance
+
+```bash
+# I/O statistics
+iostat -x 5
+
+# Per-process I/O
+iotop
+
+# Show I/O activity
+pidstat -d 5
+```
+
+Key metrics:
+- **tps** - Transactions per second
+- **kB/s** - Kilobytes read/written per second
+- **await** - Average I/O wait time
+- **%util** - Device utilization percentage
+
+## Network Performance
+
+### Network Monitoring
+
+```bash
+# Network interfaces statistics
+ip -s link
+
+# Active connections
+netstat -antp
+
+# Socket statistics
+ss -s
+
+# Monitor traffic
+iftop
+nload
+
+# Bandwidth usage by process
+nethogs
+```
+
+### Network Testing
+
+```bash
+# Test latency
+ping -c 10 example.com
+
+# Trace route
+traceroute example.com
+
+# DNS lookup
+dig example.com
+nslookup example.com
+
+# Port connectivity
+telnet example.com 80
+nc -zv example.com 80
+```
+
+## Performance Tuning
+
+### CPU Optimization
+
+1. **Reduce context switches**
+   - Decrease number of threads
+   - Optimize I/O operations
+   - Use asynchronous I/O
+
+2. **Process priority**
+```bash
+# Run with lower priority
+nice -n 10 command
+
+# Change running process priority
+renice -n 5 -p PID
+```
+
+3. **CPU affinity**
+```bash
+# Bind process to specific CPUs
+taskset -c 0,1 command
+
+# Move running process
+taskset -cp 0,1 PID
+```
+
+### Memory Optimization
+
+1. **Clear caches** (use with caution)
+```bash
+# Clear page cache
+echo 1 > /proc/sys/vm/drop_caches
+
+# Clear dentries and inodes
+echo 2 > /proc/sys/vm/drop_caches
+
+# Clear all
+echo 3 > /proc/sys/vm/drop_caches
+```
+
+2. **Swap management**
+```bash
+# Check swap usage
+swapon --show
+
+# Adjust swappiness (0-100, lower = less swap)
+sysctl vm.swappiness=10
+
+# Make permanent
+echo "vm.swappiness=10" >> /etc/sysctl.conf
+```
+
+### I/O Optimization
+
+1. **I/O scheduler**
+```bash
+# Check current scheduler
+cat /sys/block/sda/queue/scheduler
+
+# Change scheduler
+echo deadline > /sys/block/sda/queue/scheduler
+```
+
+2. **Read-ahead optimization**
+```bash
+# Check current value
+blockdev --getra /dev/sda
+
+# Increase read-ahead
+blockdev --setra 2048 /dev/sda
+```
+
+## Troubleshooting Workflow
+
+### Step 1: Identify Symptoms
+
+```bash
+# Quick overview
+uptime
+top
+free -h
+df -h
+```
+
+### Step 2: Narrow Down
+
+```bash
+# Is it CPU?
+mpstat -P ALL 5
+
+# Is it memory?
+vmstat 5
+
+# Is it disk?
+iostat -x 5
+
+# Is it network?
+sar -n DEV 5
+```
+
+### Step 3: Identify Process
+
+```bash
+# Find CPU hog
+top -o %CPU
+pidstat -u 5
+
+# Find memory hog
+top -o %MEM
+pidstat -r 5
+
+# Find I/O hog
+iotop
+pidstat -d 5
+```
+
+### Step 4: Deep Dive
+
+```bash
+# Process details
+ps aux | grep PID
+lsof -p PID
+cat /proc/PID/status
+
+# System calls
+strace -p PID
+
+# Library calls
+ltrace -p PID
+```
+
+## Best Practices
+
+1. **Establish baselines** - Know your normal performance metrics
+2. **Monitor trends** - Use time-series data to spot problems early
+3. **Test changes** - Always benchmark before and after optimizations
+4. **Document everything** - Keep records of changes and their effects
+5. **Automate monitoring** - Set up alerts for critical thresholds
+6. **Start simple** - Use basic tools before moving to advanced ones
+7. **Fix bottlenecks** - Optimize the slowest component first
+8. **Measure impact** - Verify that optimizations actually help
+
+## Common Performance Issues
+
+### High Load Average
+
+**Causes**:
+- CPU-intensive processes
+- I/O bottlenecks
+- Too many concurrent processes
+- Insufficient resources
+
+**Investigation**:
+```bash
+uptime
+mpstat -P ALL 5
+pidstat -u 5
+iostat -x 5
+```
+
+### High Memory Usage
+
+**Causes**:
+- Memory leaks
+- Insufficient memory
+- Large caches
+- Too many processes
+
+**Investigation**:
+```bash
+free -h
+top -o %MEM
+pidstat -r 5
+```
+
+### Slow Disk I/O
+
+**Causes**:
+- Disk saturation
+- Wrong I/O scheduler
+- Insufficient IOPS
+- Filesystem issues
+
+**Investigation**:
+```bash
+iostat -x 5
+iotop
+lsof | grep deleted
+```
+
+### Network Bottlenecks
+
+**Causes**:
+- Bandwidth saturation
+- High latency
+- Packet loss
+- DNS issues
+
+**Investigation**:
+```bash
+ping -c 100 target
+mtr target
+iftop
+netstat -s
+```
+
+## Performance Analysis Checklist
+
+- [ ] Check system load average
+- [ ] Review CPU usage and context switches
+- [ ] Analyze memory usage and swap activity
+- [ ] Examine disk I/O statistics
+- [ ] Monitor network traffic
+- [ ] Identify resource-intensive processes
+- [ ] Review system logs for errors
+- [ ] Compare with baseline metrics
+- [ ] Document findings and changes
+- [ ] Verify improvements after optimization
+
+## Conclusion
+
+Performance optimization is an iterative process:
+
+1. **Measure** - Gather performance metrics
+2. **Analyze** - Identify bottlenecks
+3. **Optimize** - Make targeted improvements
+4. **Verify** - Confirm improvements
+5. **Repeat** - Continue optimizing
+
+Remember: **Premature optimization is the root of all evil**. Always measure before optimizing, and focus on real bottlenecks, not theoretical ones.

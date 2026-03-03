@@ -1,0 +1,571 @@
+---
+title: Docker 容器化
+description: Docker容器化技术的安装、配置、常用命令和实战操作
+---
+
+## Docker 基础命令
+
+### 版本信息
+
+```bash
+docker version  # 显示 Docker 版本信息
+docker info     # 显示 Docker 系统信息,包括镜像和容器数
+docker --help   # 帮助信息
+```
+
+## 镜像管理
+
+### 查看镜像
+
+列出本地主机上的镜像:
+
+```bash
+docker images
+```
+
+输出示例:
+
+```
+REPOSITORY             TAG       IMAGE ID       CREATED      SIZE
+dockerpull.com/mysql   8.0       03a8d6b00bce   5 days ago   590MB
+```
+
+**字段说明:**
+- `REPOSITORY`: 镜像的仓库源
+- `TAG`: 镜像的标签
+- `IMAGE ID`: 镜像的ID
+- `CREATED`: 镜像创建时间
+- `SIZE`: 镜像大小
+
+<Note>
+  同一个仓库源可以有多个 TAG,代表不同版本。使用 `REPOSITORY:TAG` 定义不同的镜像,如果不定义标签版本,docker 将默认使用 `latest` 镜像。
+</Note>
+
+### 修改镜像名称
+
+```bash
+docker tag 03a8d6b00bce mysql:8.0
+```
+
+### 搜索镜像
+
+搜索 DockerHub 仓库中的镜像:
+
+```bash
+docker search mysql
+```
+
+过滤搜索结果(收藏数不小于1000):
+
+```bash
+docker search mysql --filter=stars=1000
+```
+
+**输出字段:**
+- `NAME`: 镜像仓库源的名称
+- `DESCRIPTION`: 镜像的描述
+- `OFFICIAL`: 是否 docker 官方发布
+- `STARS`: 点赞数
+- `AUTOMATED`: 自动构建
+
+### 下载镜像
+
+下载默认(latest)版本:
+
+```bash
+docker pull mysql
+```
+
+指定版本下载:
+
+```bash
+docker pull mysql:5.7
+```
+
+使用镜像加速:
+
+```bash
+docker pull dockerpull.com/mysql:8.0
+```
+
+<Tip>
+  如果拉取原始镜像命令如下 `docker pull whyour/qinglong:latest`,仅需在原命令前缀加入加速镜像地址: `docker pull dockerpull.com/whyour/qinglong:latest`
+</Tip>
+
+### 删除镜像
+
+删除单个镜像:
+
+```bash
+docker rmi -f 镜像id
+```
+
+删除多个镜像:
+
+```bash
+docker rmi -f 镜像名:tag 镜像名:tag
+```
+
+删除全部镜像:
+
+```bash
+docker rmi -f $(docker images -qa)
+```
+
+## 容器管理
+
+### 容器启动
+
+基本语法:
+
+```bash
+docker run [OPTIONS] IMAGE [COMMAND][ARG...]
+```
+
+**常用参数:**
+
+| 参数 | 说明 |
+|------|------|
+| `--name="Name"` | 给容器指定一个名字,之后可用此名称操作容器 |
+| `-d` | 后台方式运行容器,并返回容器的id |
+| `-i` | 以交互模式运行容器,通常与 -t 一起使用 |
+| `-t` | 给容器重新分配一个终端,通常与 -i 一起使用 |
+| `-P` | 随机端口映射(大写) |
+| `-p` | 指定端口映射(小写) |
+
+启动交互式容器:
+
+```bash
+docker run -it centos /bin/bash
+```
+
+后台启动容器:
+
+```bash
+docker run -d centos
+```
+
+<Warning>
+  Docker容器后台运行必须有一个前台进程,如果运行的命令不是那些一直挂起的命令,容器会自动退出。
+</Warning>
+
+### 容器查看
+
+```bash
+docker ps [OPTIONS]
+```
+
+**常用参数:**
+
+| 参数 | 说明 |
+|------|------|
+| `-a` | 列出当前所有正在运行的容器 + 历史运行过的容器 |
+| `-l` | 显示最近创建的容器 |
+| `-n=?` | 显示最近n个创建的容器 |
+| `-q` | 静默模式,只显示容器编号 |
+
+### 退出容器
+
+| 指令 | 说明 |
+|------|------|
+| `exit` | 容器停止退出 |
+| `Ctrl+P+Q` | 容器不停止退出 |
+
+### 启动停止容器
+
+| 指令 | 说明 |
+|------|------|
+| `docker start (容器id or 容器名)` | 启动容器 |
+| `docker restart (容器id or 容器名)` | 重启容器 |
+| `docker stop (容器id or 容器名)` | 停止容器 |
+| `docker kill (容器id or 容器名)` | 强制停止容器 |
+
+### 删除容器
+
+删除指定容器:
+
+```bash
+docker rm 容器id
+```
+
+删除所有容器:
+
+```bash
+docker rm -f $(docker ps -a -q)
+# 或者
+docker ps -a -q | xargs docker rm
+```
+
+清理停止的容器:
+
+```bash
+docker container prune
+```
+
+## 容器操作
+
+### 查看日志
+
+基本用法:
+
+```bash
+docker logs 容器id
+```
+
+**常用参数:**
+
+| 参数 | 说明 |
+|------|------|
+| `-t` | 显示时间戳 |
+| `-f` | 打印最新的日志 |
+| `--tail` | 显示多少条日志 |
+
+示例 - 创建一个输出日志的容器:
+
+```bash
+docker run -d centos /bin/sh -c "while true;do echo hello;sleep 1;done"
+```
+
+查看最新10条日志:
+
+```bash
+docker logs -tf --tail 10 容器id
+```
+
+停止容器:
+
+```bash
+docker stop 容器id
+```
+
+### 查看容器进程
+
+查看容器内运行的进程:
+
+```bash
+docker top 容器id
+```
+
+### 查看容器元数据
+
+查看容器/镜像的详细信息:
+
+```bash
+docker inspect 容器id
+```
+
+### 进入运行中的容器
+
+<Tabs>
+  <Tab title="exec 命令(推荐)">
+    ```bash
+    docker exec -it 容器id /bin/bash
+    ```
+    
+    特点:
+    - 在容器中打开新的终端
+    - 可以启动新的进程
+    - 退出容器终端不会导致容器停止
+  </Tab>
+  
+  <Tab title="attach 命令">
+    ```bash
+    docker attach 容器id
+    ```
+    
+    特点:
+    - 直接进入容器启动命令的终端
+    - 不会启动新的进程
+    - 退出会导致容器停止
+  </Tab>
+</Tabs>
+
+示例:
+
+```bash
+docker run -d centos /bin/sh -c "while true;do echo hello;sleep 1;done"
+docker ps
+docker exec -it 容器id /bin/bash
+ps -ef  # 查看容器内进程
+exit    # 退出后容器仍在运行
+```
+
+### 容器与主机间文件传输
+
+从容器拷贝文件到主机:
+
+```bash
+docker cp 容器id:容器内路径 目的主机路径
+```
+
+从主机拷贝文件到容器:
+
+```bash
+docker cp 本地文件路径 容器id:容器内路径
+```
+
+示例:
+
+```bash
+docker cp 7f9ead6f906b:/home/f1 /home
+docker cp /home/test.txt 7f9ead6f906b:/root/test.txt
+```
+
+### 获取容器ID
+
+查看容器列表:
+
+```bash
+docker ps
+```
+
+查看完整容器ID:
+
+```bash
+docker inspect -f '{{.Id}}' 容器名
+```
+
+## Docker 传输文件
+
+### 容器向主机传送文件
+
+格式:
+
+```bash
+docker cp container_id:<docker容器内的路径> <本地保存文件的路径>
+```
+
+示例:
+
+```bash
+docker cp 10704c9eb7bb:/root/test.text /home/vagrant/test.txt
+```
+
+### 主机向容器传送文件
+
+格式:
+
+```bash
+docker cp 本地文件的路径 container_id:<docker容器内的路径>
+```
+
+示例:
+
+```bash
+docker cp /home/vagrant/test.txt 10704c9eb7bb:/root/test.text
+```
+
+## Docker MySQL 实战
+
+### 创建 MySQL 容器
+
+<Steps>
+  <Step title="搜索 MySQL 镜像">
+    ```bash
+    docker search mysql
+    ```
+  </Step>
+  
+  <Step title="拉取 MySQL 镜像">
+    ```bash
+    docker pull mysql:8.0.31
+    ```
+  </Step>
+  
+  <Step title="查看本地镜像">
+    ```bash
+    docker images
+    ```
+  </Step>
+  
+  <Step title="启动 MySQL 容器">
+    ```bash
+    docker run -itd --name mysql-master -p 3339:3306 -e MYSQL_ROOT_PASSWORD=Mysql2486 mysql
+    docker run -itd --name mysql-slave -p 3340:3306 -e MYSQL_ROOT_PASSWORD=Mysql2486 mysql
+    ```
+    
+    **参数说明:**
+    - `-itd`: 交互模式下后台运行
+    - `--name`: 容器名称
+    - `-p`: 端口映射,主机端口:容器端口
+    - `-e`: 环境变量,设置root密码
+  </Step>
+  
+  <Step title="连接 MySQL">
+    ```bash
+    mysql -h localhost -P 3339 -u root -pMysql2486
+    ```
+  </Step>
+</Steps>
+
+### 配置主从复制
+
+#### 获取容器IP地址
+
+```bash
+docker inspect --format='{{.NetworkSettings.IPAddress}}' mysql-master
+docker inspect --format='{{.NetworkSettings.IPAddress}}' mysql-slave
+```
+
+#### 配置主库
+
+编辑 `/etc/my.cnf`:
+
+```ini
+log-bin=mysql-bin  # 启动二进制日志
+server-id=100      # 主机唯一id
+```
+
+创建复制用户:
+
+```sql
+-- 创建账户
+CREATE USER 'mcx'@'%' IDENTIFIED BY 'Mysql2486';
+
+-- 赋予权限
+GRANT ALL PRIVILEGES ON *.* TO 'mcx'@'%' WITH GRANT OPTION;
+
+-- 刷新权限
+FLUSH PRIVILEGES;
+```
+
+查看主库状态:
+
+```sql
+SHOW MASTER STATUS\G;
+```
+
+#### 配置从库
+
+编辑 `/etc/my.cnf`:
+
+```ini
+log-bin=mysql-slave-bin         # 开启二进制日志
+relay_log=edu-mysql-relay-bin   # 配置中继日志
+server-id=101                    # 从机唯一id
+```
+
+配置主从关系:
+
+```sql
+CHANGE MASTER TO 
+  master_host='172.17.0.2',
+  master_user='mcx',
+  master_password='Mysql2486',
+  master_port=3306,
+  master_log_file='mysql-bin.000001',
+  master_log_pos=840;
+```
+
+**参数说明:**
+- `master_host`: Master的容器IP地址
+- `master_port`: Master的端口号(容器内部端口)
+- `master_user`: 数据同步用户
+- `master_password`: 同步用户密码
+- `master_log_file`: 从哪个日志文件开始复制
+- `master_log_pos`: 从哪个Position开始读取
+
+启动从库复制:
+
+```sql
+START SLAVE;
+SHOW SLAVE STATUS\G;
+```
+
+检查以下两项是否为 Yes:
+- `Slave_IO_Running: Yes`
+- `Slave_SQL_Running: Yes`
+
+### 解决连接问题
+
+如果遇到连接问题,使用公钥加密:
+
+```bash
+mysql -u mcx -pMysql2486 -h 172.17.0.3 -P3306 --get-server-public-key
+```
+
+重新配置并启动复制即可。
+
+### 从 Centos 启动 MySQL
+
+```bash
+service docker start  # 启动docker
+docker images         # 查看镜像
+docker start mysql    # 启动mysql容器
+```
+
+## 常用命令总结
+
+| 命令 | 说明 |
+|------|------|
+| `attach` | 连接到正在运行的容器 |
+| `build` | 通过 Dockerfile 定制镜像 |
+| `commit` | 提交当前容器为新的镜像 |
+| `cp` | 在容器和主机间拷贝文件 |
+| `create` | 创建一个新容器但不启动 |
+| `exec` | 在运行的容器中执行命令 |
+| `images` | 列出系统当前镜像 |
+| `info` | 显示系统相关信息 |
+| `inspect` | 查看容器详细信息 |
+| `kill` | 强制停止容器 |
+| `logs` | 输出容器日志信息 |
+| `ps` | 列出容器列表 |
+| `pull` | 从镜像源拉取镜像 |
+| `push` | 推送镜像到镜像源 |
+| `restart` | 重启容器 |
+| `rm` | 删除容器 |
+| `rmi` | 删除镜像 |
+| `run` | 创建并运行容器 |
+| `start` | 启动已停止的容器 |
+| `stop` | 停止运行的容器 |
+| `top` | 查看容器中运行的进程 |
+| `version` | 查看 Docker 版本号 |
+
+## 最佳实践
+
+<CardGroup cols={2}>
+  <Card title="使用 .dockerignore" icon="file">
+    创建 .dockerignore 文件,排除不需要的文件,减小镜像体积。
+  </Card>
+  
+  <Card title="最小化层数" icon="layer-group">
+    合并 RUN 命令,减少镜像层数,提高构建速度。
+  </Card>
+  
+  <Card title="使用标签" icon="tag">
+    为镜像添加有意义的标签,便于版本管理。
+  </Card>
+  
+  <Card title="定期清理" icon="broom">
+    定期清理不使用的容器和镜像,释放磁盘空间。
+  </Card>
+</CardGroup>
+
+## 故障排查
+
+<AccordionGroup>
+  <Accordion title="容器启动失败">
+    检查 Docker 服务是否运行:
+    ```bash
+    service docker start
+    ```
+    
+    查看容器日志:
+    ```bash
+    docker logs 容器id
+    ```
+  </Accordion>
+  
+  <Accordion title="端口映射无法访问">
+    1. 检查端口是否被占用
+    2. 确认防火墙设置
+    3. 验证容器内服务是否正常运行
+  </Accordion>
+  
+  <Accordion title="数据持久化问题">
+    使用数据卷(Volume)持久化数据:
+    ```bash
+    docker run -v /host/path:/container/path image
+    ```
+  </Accordion>
+</AccordionGroup>

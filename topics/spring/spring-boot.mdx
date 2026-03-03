@@ -1,0 +1,813 @@
+---
+title: Spring Boot Development
+description: Complete guide to Spring Boot including auto-configuration, starters, REST APIs, and production features
+---
+
+# Spring Boot Development
+
+Spring Boot simplifies Spring application development by providing auto-configuration and production-ready features out of the box.
+
+## Introduction
+
+### What is Spring Boot?
+
+<Note>
+  Spring Boot is an opinionated framework built on top of Spring Framework that eliminates boilerplate configuration and enables rapid application development with sensible defaults.
+</Note>
+
+**Key Features:**
+- Auto-configuration based on classpath dependencies
+- Standalone applications with embedded servers
+- Production-ready features (metrics, health checks)
+- No XML configuration required
+- Minimal code generation
+
+### Spring Boot vs Spring Framework
+
+<Tabs>
+  <Tab title="Traditional Spring">
+    ```xml
+    <!-- web.xml -->
+    <servlet>
+        <servlet-name>dispatcher</servlet-name>
+        <servlet-class>
+            org.springframework.web.servlet.DispatcherServlet
+        </servlet-class>
+        <init-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>/WEB-INF/spring/appServlet/servlet-context.xml</param-value>
+        </init-param>
+    </servlet>
+    
+    <!-- Multiple XML configuration files -->
+    <!-- Manual dependency management -->
+    <!-- External application server required -->
+    ```
+  </Tab>
+  
+  <Tab title="Spring Boot">
+    ```java
+    @SpringBootApplication
+    public class Application {
+        public static void main(String[] args) {
+            SpringApplication.run(Application.class, args);
+        }
+    }
+    
+    // That's it! Everything is auto-configured
+    // Embedded server included
+    // Run as standalone JAR
+    ```
+  </Tab>
+</Tabs>
+
+## Getting Started
+
+### Creating a Spring Boot Application
+
+<Tabs>
+  <Tab title="Spring Initializr">
+    **Using web interface:**
+    
+    1. Visit https://start.spring.io/
+    2. Select:
+       - Project: Maven/Gradle
+       - Language: Java
+       - Spring Boot version
+       - Dependencies: Web, JPA, etc.
+    3. Generate and download
+    
+    **Using CLI:**
+    ```bash
+    curl https://start.spring.io/starter.zip \
+      -d dependencies=web,data-jpa,mysql \
+      -d type=maven-project \
+      -d bootVersion=3.2.0 \
+      -d groupId=com.example \
+      -d artifactId=demo \
+      -o demo.zip
+    ```
+  </Tab>
+  
+  <Tab title="Maven POM">
+    ```xml
+    <?xml version="1.0" encoding="UTF-8"?>
+    <project xmlns="http://maven.apache.org/POM/4.0.0"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        <modelVersion>4.0.0</modelVersion>
+        
+        <parent>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-parent</artifactId>
+            <version>3.2.0</version>
+        </parent>
+        
+        <groupId>com.example</groupId>
+        <artifactId>demo</artifactId>
+        <version>1.0.0</version>
+        
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-web</artifactId>
+            </dependency>
+        </dependencies>
+        
+        <build>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                </plugin>
+            </plugins>
+        </build>
+    </project>
+    ```
+  </Tab>
+</Tabs>
+
+### Main Application Class
+
+```java
+package com.example.demo;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+// Equivalent to:
+// @Configuration
+// @EnableAutoConfiguration
+// @ComponentScan
+public class DemoApplication {
+    
+    public static void main(String[] args) {
+        SpringApplication.run(DemoApplication.class, args);
+    }
+}
+```
+
+## Spring Boot Starters
+
+### Common Starters
+
+<CardGroup cols={2}>
+  <Card title="Web Applications" icon="globe">
+    ```xml
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    ```
+    Includes: Spring MVC, Tomcat, JSON
+  </Card>
+  
+  <Card title="Data Access" icon="database">
+    ```xml
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    ```
+    Includes: Hibernate, JPA, JDBC
+  </Card>
+  
+  <Card title="Security" icon="shield">
+    ```xml
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    ```
+    Includes: Spring Security
+  </Card>
+  
+  <Card title="Testing" icon="flask">
+    ```xml
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+    ```
+    Includes: JUnit, Mockito, AssertJ
+  </Card>
+</CardGroup>
+
+## Configuration
+
+### Application Properties
+
+<Tabs>
+  <Tab title="application.properties">
+    ```properties
+    # Server Configuration
+    server.port=8080
+    server.servlet.context-path=/api
+    
+    # Database Configuration
+    spring.datasource.url=jdbc:mysql://localhost:3306/mydb
+    spring.datasource.username=root
+    spring.datasource.password=secret
+    spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+    
+    # JPA Configuration
+    spring.jpa.hibernate.ddl-auto=update
+    spring.jpa.show-sql=true
+    spring.jpa.properties.hibernate.format_sql=true
+    
+    # Logging
+    logging.level.root=INFO
+    logging.level.com.example=DEBUG
+    logging.file.name=application.log
+    ```
+  </Tab>
+  
+  <Tab title="application.yml">
+    ```yaml
+    server:
+      port: 8080
+      servlet:
+        context-path: /api
+    
+    spring:
+      datasource:
+        url: jdbc:mysql://localhost:3306/mydb
+        username: root
+        password: secret
+        driver-class-name: com.mysql.cj.jdbc.Driver
+      
+      jpa:
+        hibernate:
+          ddl-auto: update
+        show-sql: true
+        properties:
+          hibernate:
+            format_sql: true
+    
+    logging:
+      level:
+        root: INFO
+        com.example: DEBUG
+      file:
+        name: application.log
+    ```
+  </Tab>
+  
+  <Tab title="Custom Properties">
+    ```properties
+    # application.properties
+    app.name=My Application
+    app.version=1.0.0
+    app.api.timeout=5000
+    ```
+    
+    ```java
+    @Component
+    @ConfigurationProperties(prefix = "app")
+    public class AppProperties {
+        private String name;
+        private String version;
+        private Api api;
+        
+        public static class Api {
+            private int timeout;
+            // getters and setters
+        }
+        // getters and setters
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Profiles
+
+<CodeGroup>
+```properties application-dev.properties
+server.port=8080
+spring.datasource.url=jdbc:h2:mem:testdb
+logging.level.root=DEBUG
+```
+
+```properties application-prod.properties
+server.port=80
+spring.datasource.url=jdbc:mysql://prod-server:3306/mydb
+logging.level.root=WARN
+```
+
+```java Activate Profile
+// 1. In application.properties
+spring.profiles.active=dev
+
+// 2. Command line
+java -jar app.jar --spring.profiles.active=prod
+
+// 3. Environment variable
+export SPRING_PROFILES_ACTIVE=prod
+
+// 4. Programmatically
+@SpringBootApplication
+public class Application {
+    public static void main(String[] args) {
+        SpringApplication app = new SpringApplication(Application.class);
+        app.setAdditionalProfiles("dev");
+        app.run(args);
+    }
+}
+```
+</CodeGroup>
+
+## Building REST APIs
+
+### Basic REST Controller
+
+```java
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+    
+    @Autowired
+    private UserService userService;
+    
+    @GetMapping
+    public List<User> getAllUsers() {
+        return userService.findAll();
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<User> getUserById(@PathVariable Long id) {
+        return userService.findById(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @PostMapping
+    public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
+        User created = userService.save(user);
+        return ResponseEntity
+            .created(URI.create("/api/users/" + created.getId()))
+            .body(created);
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateUser(
+            @PathVariable Long id,
+            @Valid @RequestBody User user) {
+        return userService.update(id, user)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        if (userService.delete(id)) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
+}
+```
+
+### Request/Response Handling
+
+<Tabs>
+  <Tab title="Path Variables">
+    ```java
+    @GetMapping("/users/{id}")
+    public User getUser(@PathVariable Long id) {
+        return userService.findById(id);
+    }
+    
+    @GetMapping("/users/{id}/posts/{postId}")
+    public Post getUserPost(
+            @PathVariable Long id,
+            @PathVariable Long postId) {
+        return postService.findByUserAndId(id, postId);
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Query Parameters">
+    ```java
+    @GetMapping("/users")
+    public List<User> getUsers(
+            @RequestParam(required = false) String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return userService.findByName(name, page, size);
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Request Body">
+    ```java
+    @PostMapping("/users")
+    public User createUser(@RequestBody User user) {
+        return userService.save(user);
+    }
+    
+    @PostMapping("/users/batch")
+    public List<User> createUsers(@RequestBody List<User> users) {
+        return userService.saveAll(users);
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Headers">
+    ```java
+    @GetMapping("/users")
+    public List<User> getUsers(
+            @RequestHeader("Authorization") String auth,
+            @RequestHeader(value = "User-Agent", required = false) String userAgent) {
+        // Use headers
+        return userService.findAll();
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Validation
+
+<Warning>
+  Always validate user input to prevent security vulnerabilities and data corruption.
+</Warning>
+
+```java
+// Entity with validation
+@Entity
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @NotBlank(message = "Name is required")
+    @Size(min = 2, max = 50, message = "Name must be between 2 and 50 characters")
+    private String name;
+    
+    @Email(message = "Email should be valid")
+    @NotBlank(message = "Email is required")
+    private String email;
+    
+    @Min(value = 18, message = "Age must be at least 18")
+    @Max(value = 150, message = "Age must be less than 150")
+    private Integer age;
+    
+    @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Invalid phone number")
+    private String phone;
+    
+    // getters and setters
+}
+
+// Controller with validation
+@RestController
+public class UserController {
+    
+    @PostMapping("/users")
+    public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
+        User created = userService.save(user);
+        return ResponseEntity.ok(created);
+    }
+}
+
+// Global exception handler
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidationErrors(
+            MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+            errors.put(error.getField(), error.getDefaultMessage())
+        );
+        return ResponseEntity.badRequest().body(errors);
+    }
+    
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<String> handleNotFound(ResourceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+}
+```
+
+## Data Access with Spring Data JPA
+
+### Entity Definition
+
+```java
+@Entity
+@Table(name = "users")
+public class User {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(nullable = false, length = 50)
+    private String name;
+    
+    @Column(unique = true, nullable = false)
+    private String email;
+    
+    @Column(name = "created_at", updatable = false)
+    @CreatedDate
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at")
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
+    
+    // Relationships
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Post> posts = new ArrayList<>();
+    
+    @ManyToMany
+    @JoinTable(
+        name = "user_roles",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
+    
+    // getters and setters
+}
+```
+
+### Repository
+
+```java
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+    
+    // Method name query derivation
+    List<User> findByName(String name);
+    List<User> findByEmailContaining(String email);
+    List<User> findByAgeGreaterThan(int age);
+    
+    // @Query with JPQL
+    @Query("SELECT u FROM User u WHERE u.email = ?1")
+    Optional<User> findByEmail(String email);
+    
+    // Native query
+    @Query(value = "SELECT * FROM users WHERE name LIKE %?1%", nativeQuery = true)
+    List<User> searchByName(String name);
+    
+    // Modifying query
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.name = ?2 WHERE u.id = ?1")
+    int updateName(Long id, String name);
+    
+    // Pagination and sorting
+    Page<User> findByAgeGreaterThan(int age, Pageable pageable);
+}
+```
+
+### Service Layer
+
+```java
+@Service
+@Transactional
+public class UserService {
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Transactional(readOnly = true)
+    public List<User> findAll() {
+        return userRepository.findAll();
+    }
+    
+    @Transactional(readOnly = true)
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
+    }
+    
+    public User save(User user) {
+        return userRepository.save(user);
+    }
+    
+    public Optional<User> update(Long id, User userDetails) {
+        return userRepository.findById(id)
+            .map(user -> {
+                user.setName(userDetails.getName());
+                user.setEmail(userDetails.getEmail());
+                return userRepository.save(user);
+            });
+    }
+    
+    public boolean delete(Long id) {
+        return userRepository.findById(id)
+            .map(user -> {
+                userRepository.delete(user);
+                return true;
+            })
+            .orElse(false);
+    }
+    
+    @Transactional(readOnly = true)
+    public Page<User> findPaginated(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
+        return userRepository.findAll(pageable);
+    }
+}
+```
+
+## Production Features
+
+### Actuator Endpoints
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+```
+
+```properties
+# Enable all endpoints
+management.endpoints.web.exposure.include=*
+
+# Or specific endpoints
+management.endpoints.web.exposure.include=health,info,metrics
+
+# Customize endpoint paths
+management.endpoints.web.base-path=/actuator
+
+# Show detailed health info
+management.endpoint.health.show-details=always
+```
+
+**Available Endpoints:**
+- `/actuator/health` - Application health
+- `/actuator/info` - Application info
+- `/actuator/metrics` - Application metrics
+- `/actuator/env` - Environment properties
+- `/actuator/loggers` - Logger configuration
+
+### Custom Health Indicator
+
+```java
+@Component
+public class CustomHealthIndicator implements HealthIndicator {
+    
+    @Override
+    public Health health() {
+        try {
+            // Check your custom health criteria
+            boolean serviceUp = checkExternalService();
+            
+            if (serviceUp) {
+                return Health.up()
+                    .withDetail("service", "Available")
+                    .build();
+            } else {
+                return Health.down()
+                    .withDetail("service", "Unavailable")
+                    .build();
+            }
+        } catch (Exception e) {
+            return Health.down(e).build();
+        }
+    }
+    
+    private boolean checkExternalService() {
+        // Implementation
+        return true;
+    }
+}
+```
+
+### Application Metrics
+
+```java
+@Service
+public class MetricsService {
+    
+    private final MeterRegistry meterRegistry;
+    private final Counter userCreationCounter;
+    
+    public MetricsService(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+        this.userCreationCounter = Counter.builder("users.created")
+            .description("Number of users created")
+            .register(meterRegistry);
+    }
+    
+    public void recordUserCreation() {
+        userCreationCounter.increment();
+    }
+    
+    @Timed(value = "user.fetch.time", description = "Time taken to fetch user")
+    public User fetchUser(Long id) {
+        // Implementation
+        return null;
+    }
+}
+```
+
+## Testing
+
+### Unit Tests
+
+```java
+@ExtendWith(MockitoExtension.class)
+class UserServiceTest {
+    
+    @Mock
+    private UserRepository userRepository;
+    
+    @InjectMocks
+    private UserService userService;
+    
+    @Test
+    void testFindAll() {
+        List<User> users = Arrays.asList(new User(), new User());
+        when(userRepository.findAll()).thenReturn(users);
+        
+        List<User> result = userService.findAll();
+        
+        assertEquals(2, result.size());
+        verify(userRepository).findAll();
+    }
+}
+```
+
+### Integration Tests
+
+```java
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
+class UserControllerIntegrationTest {
+    
+    @Autowired
+    private MockMvc mockMvc;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
+    
+    @Test
+    void testCreateUser() throws Exception {
+        User user = new User();
+        user.setName("John Doe");
+        user.setEmail("john@example.com");
+        
+        mockMvc.perform(post("/api/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.name").value("John Doe"))
+            .andExpect(jsonPath("$.email").value("john@example.com"));
+    }
+}
+```
+
+## Best Practices
+
+<Steps>
+  <Step title="Use Starters Wisely">
+    - Include only necessary starters
+    - Avoid version conflicts
+    - Let Spring Boot manage versions
+  </Step>
+  
+  <Step title="Externalize Configuration">
+    - Use profiles for different environments
+    - Store sensitive data in environment variables
+    - Use Spring Cloud Config for distributed config
+  </Step>
+  
+  <Step title="Follow REST Conventions">
+    - Use proper HTTP methods
+    - Return appropriate status codes
+    - Version your APIs
+  </Step>
+  
+  <Step title="Implement Proper Error Handling">
+    - Use @ControllerAdvice
+    - Return consistent error responses
+    - Log errors appropriately
+  </Step>
+  
+  <Step title="Monitor and Measure">
+    - Enable Actuator in production
+    - Set up custom metrics
+    - Use distributed tracing
+  </Step>
+</Steps>
+
+## Related Topics
+
+<CardGroup>
+  <Card title="Spring Framework" icon="leaf" href="/topics/spring/spring-framework">
+    Core Spring concepts
+  </Card>
+  <Card title="Java Fundamentals" icon="code" href="/topics/java/fundamentals">
+    Java basics
+  </Card>
+  <Card title="Concurrency" icon="gears" href="/topics/java/concurrency">
+    Multithreading in Java
+  </Card>
+</CardGroup>

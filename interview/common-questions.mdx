@@ -1,0 +1,603 @@
+---
+title: 'Common Interview Questions'
+description: 'Frequently asked technical interview questions with detailed answers'
+icon: 'message-question'
+---
+
+## Java Fundamentals
+
+<AccordionGroup>
+  <Accordion title="What is the difference between int and Integer?">
+    **Key Differences:**
+    
+    1. **Data Type**: `int` is a primitive data type, while `Integer` is a wrapper class
+    2. **Default Value**: `int` defaults to 0, while `Integer` defaults to null
+    3. **Memory Storage**: `int` stores the value directly, `Integer` stores an object reference
+    4. **Instantiation**: `Integer` must be instantiated, `int` does not need to be
+    5. **Comparison**: `int` uses `==`, `Integer` should use `.equals()` method
+    6. **Generics**: `Integer` can be used in generics, `int` cannot
+    
+    **Usage Scenarios:**
+    
+    - **Use Integer**: In Spring Boot controllers to receive parameters (null handling)
+    - **Use int**: For class properties where null values are not allowed (better performance)
+    
+    ```java
+    // Controller - use Integer
+    public void handleRequest(Integer userId) {
+        if (userId == null) {
+            // Handle missing parameter
+        }
+    }
+    
+    // Entity class - use int
+    public class User {
+        private int age; // More efficient
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Explain the difference between abstract class and interface">
+    **Comparison Table:**
+    
+    | Aspect | Abstract Class | Interface |
+    |--------|---------------|----------|
+    | Keyword | `abstract` | `interface` |
+    | Member Variables | No restrictions | Only `public static final` constants |
+    | Constructor | Has constructor, cannot instantiate | No constructor |
+    | Methods | Can have concrete methods | Default `public abstract` (JDK 8+ supports default/static) |
+    | Inheritance | Single inheritance | Multiple inheritance |
+    
+    **When to Use Which:**
+    
+    - **Abstract Class (is-a relationship)**: Template-based design with common features
+      - Example: Car abstract class with chassis, horn - different configurations can have different implementations
+    
+    - **Interface (can-do relationship)**: Contract-based design defining behavior
+      - Example: Flyable interface - both Plane and Bird can implement fly() method differently
+    
+    ```java
+    // Abstract class example
+    abstract class Car {
+        protected String chassis;
+        
+        public abstract void start();
+    }
+    
+    // Interface example
+    interface Flyable {
+        void fly();
+    }
+    
+    class Plane implements Flyable {
+        public void fly() {
+            // Plane flying implementation
+        }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Difference between String, StringBuilder, and StringBuffer?">
+    **Comparison:**
+    
+    1. **Mutability**: 
+       - `String` is immutable (cannot be changed)
+       - `StringBuilder` and `StringBuffer` are mutable
+    
+    2. **Thread Safety**:
+       - `String` is thread-safe (immutable)
+       - `StringBuffer` is thread-safe (synchronized methods)
+       - `StringBuilder` is not thread-safe (faster)
+    
+    3. **Performance**:
+       - `String` creates new objects for each modification
+       - `StringBuilder` modifies the object itself (fastest)
+       - `StringBuffer` adds synchronization overhead
+    
+    **When to Use:**
+    
+    - **String**: For constant strings or few modifications
+    - **StringBuilder**: Single-threaded string concatenation (preferred)
+    - **StringBuffer**: Multi-threaded string concatenation
+    
+    ```java
+    // Inefficient - creates multiple String objects
+    String result = "";
+    for (int i = 0; i < 1000; i++) {
+        result += i; // Creates new String each time
+    }
+    
+    // Efficient - single StringBuilder object
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < 1000; i++) {
+        sb.append(i);
+    }
+    String result = sb.toString();
+    ```
+  </Accordion>
+
+  <Accordion title="Why is String immutable?">
+    **Reasons for Immutability:**
+    
+    1. **Design**: The character array is `final` and `private`, with no modification methods exposed
+    2. **Inheritance**: String class is `final`, preventing subclasses from breaking immutability
+    
+    **Benefits:**
+    
+    - **Thread Safety**: No synchronization needed
+    - **Security**: Used for passwords, file paths, network connections
+    - **String Pool**: Enables efficient memory reuse
+    - **HashCode Caching**: Hash value can be cached safely
+    
+    ```java
+    public final class String {
+        private final char[] value; // Cannot modify
+        
+        // No methods to modify the array
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="What are the three OOP characteristics?">
+    **1. Encapsulation (封装)**
+    
+    - Control access to properties through public interfaces
+    - Simplifies object relationships and reduces coupling
+    - Example: Getters and setters
+    
+    **2. Inheritance (继承)**
+    
+    - Subclass inherits properties and behaviors from parent class
+    - Enables code reuse
+    - Follows Liskov Substitution Principle
+    
+    **3. Polymorphism (多态)**
+    
+    - Same behavior with different implementations based on runtime object type
+    - Achieved through method overriding and interfaces
+    
+    ```java
+    // Polymorphism example
+    Animal animal = new Dog();
+    animal.makeSound(); // Calls Dog's implementation
+    
+    animal = new Cat();
+    animal.makeSound(); // Calls Cat's implementation
+    ```
+    
+    <Note>
+    **SOLID Principles**: Single Responsibility, Open-Closed, Liskov Substitution, Interface Segregation, Dependency Inversion
+    </Note>
+  </Accordion>
+</AccordionGroup>
+
+## Java Collections
+
+<AccordionGroup>
+  <Accordion title="Explain HashMap's put operation">
+    **Process (varies between JDK 7 and 8):**
+    
+    **Step 1**: Calculate array index using hash algorithm and bitwise AND
+    
+    **Step 2**: Check if position is empty
+    
+    **Case 1 - Empty Position**:
+    - Create Entry/Node object and place it at that position
+    
+    **Case 2 - Position Occupied**:
+    
+    **JDK 7**:
+    1. Check if expansion is needed
+    2. Create Entry and insert at head of linked list (head insertion)
+    
+    **JDK 8**:
+    1. Determine if current node is linked list or red-black tree
+    2. If red-black tree: add as tree node (checking for duplicates)
+    3. If linked list: append to tail (tail insertion), checking duplicates
+    4. If list length ≥ 8, convert to red-black tree
+    5. Finally check if expansion needed
+    
+    **Key Points**:
+    - JDK 7 uses head insertion, JDK 8 uses tail insertion
+    - JDK 8 introduces red-black tree for better performance with many collisions
+    - Load factor default is 0.75 (balance between space and time)
+    
+    ```java
+    Map<String, Integer> map = new HashMap<>();
+    map.put("key", 100); // Triggers put operation
+    ```
+  </Accordion>
+
+  <Accordion title="Why does HashMap use red-black tree?">
+    **Before Red-Black Tree:**
+    - Used only linked lists for collision handling
+    - Worst case: O(n) search time
+    
+    **Why Not Always Use Red-Black Tree:**
+    - Tree insertion has overhead (self-balancing)
+    - For small amounts of data, linked list is simpler and faster
+    
+    **Why Use Red-Black Tree:**
+    - When data is large, linked list search becomes O(n)
+    - Red-black tree provides O(log n) search time
+    
+    **Why Threshold is 8:**
+    - Probability of having 8+ collisions is very low (Poisson distribution)
+    - Balance between linked list simplicity and tree efficiency
+    
+    **Degradation:**
+    - Converts back to linked list when nodes reduce to 6
+    - Avoids frequent conversion at boundary
+  </Accordion>
+
+  <Accordion title="What are thread-safe List implementations?">
+    **Three Options:**
+    
+    1. **Vector**
+       - Uses `synchronized` on methods
+       - Both read and write operations are locked
+       - Oldest and least efficient
+    
+    2. **CopyOnWriteArrayList**
+       - Copies array on every write operation
+       - Read operations don't need locks (extremely fast reads)
+       - Write operations are expensive
+       - Best for read-heavy scenarios
+    
+    3. **Collections.synchronizedList()**
+       - Wraps existing List with synchronized blocks
+       - Both read and write are locked
+       - More flexible than Vector
+    
+    ```java
+    // Vector
+    Vector<String> vector = new Vector<>();
+    
+    // CopyOnWriteArrayList
+    CopyOnWriteArrayList<Integer> cowList = new CopyOnWriteArrayList<>();
+    
+    // SynchronizedList
+    List<String> syncList = Collections.synchronizedList(new ArrayList<>());
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## JVM & Concurrency
+
+<AccordionGroup>
+  <Accordion title="Explain the class loading process">
+    **Five Stages:**
+    
+    1. **Loading (加载)**: Read .class file into memory
+    2. **Linking (链接)**:
+       - Verification: Verify bytecode format and semantics
+       - Preparation: Allocate memory for static variables (default values)
+       - Resolution: Convert symbolic references to direct references
+    3. **Initialization (初始化)**: Execute static initializers and assign actual values
+    
+    **Example:**
+    
+    ```java
+    public class Example {
+        // Preparation: assigned 0, Initialization: assigned 100
+        public static int staticVar = 100;
+        
+        // Preparation: assigned "Static constant" immediately
+        public static final String CONSTANT = "Static constant";
+        
+        // Executed during initialization phase
+        static {
+            System.out.println("Static block");
+        }
+        
+        // Executed when object is created
+        public Example() {
+            System.out.println("Constructor");
+        }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Explain the parent delegation model">
+    **How It Works:**
+    
+    When a class loader receives a class loading request:
+    1. Delegates to parent class loader first
+    2. Parent tries to load, and delegates to its parent
+    3. Reaches Bootstrap ClassLoader at top
+    4. If parent cannot load, child tries to load
+    
+    **Class Loader Hierarchy:**
+    
+    1. **Bootstrap ClassLoader**: Loads `<JAVA_HOME>/lib` (rt.jar)
+    2. **Extension ClassLoader**: Loads `<JAVA_HOME>/lib/ext`
+    3. **Application ClassLoader**: Loads application classpath
+    4. **Custom ClassLoader**: User-defined loaders
+    
+    **Why Needed:**
+    
+    1. **Security**: Prevents modification of core Java classes
+    2. **Avoid Duplicate Loading**: Same class only loaded once
+    3. **Guarantee Uniqueness**: Core classes always from same loader
+    
+    ```java
+    // This will fail - java.lang package is protected
+    package java.lang;
+    public class String {
+        // Cannot override core class
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Explain thread pool core parameters">
+    **Seven Core Parameters:**
+    
+    1. **corePoolSize**: Number of core threads (always kept alive)
+    2. **maximumPoolSize**: Maximum number of threads allowed
+    3. **keepAliveTime**: How long excess idle threads wait before termination
+    4. **unit**: Time unit for keepAliveTime
+    5. **workQueue**: Queue to hold tasks waiting for execution
+    6. **threadFactory**: Factory to create new threads
+    7. **handler**: Rejection policy when queue is full
+    
+    **Execution Flow:**
+    
+    1. If threads < corePoolSize, create new thread
+    2. If threads = corePoolSize, add to queue
+    3. If queue is full and threads < maximumPoolSize, create new thread
+    4. If threads = maximumPoolSize and queue is full, execute rejection policy
+    
+    **Common Rejection Policies:**
+    
+    - **AbortPolicy**: Throw exception (default)
+    - **CallerRunsPolicy**: Run in caller's thread
+    - **DiscardPolicy**: Silently discard
+    - **DiscardOldestPolicy**: Discard oldest task
+    
+    ```java
+    ThreadPoolExecutor executor = new ThreadPoolExecutor(
+        5,                      // corePoolSize
+        10,                     // maximumPoolSize
+        60L,                    // keepAliveTime
+        TimeUnit.SECONDS,       // unit
+        new LinkedBlockingQueue<>(100),  // workQueue
+        Executors.defaultThreadFactory(), // threadFactory
+        new ThreadPoolExecutor.AbortPolicy()  // handler
+    );
+    ```
+  </Accordion>
+
+  <Accordion title="What is the role of volatile?">
+    **Purpose:**
+    
+    `volatile` is a lightweight synchronization mechanism that provides:
+    
+    1. **Visibility**: Changes to volatile variables are immediately visible to all threads
+    2. **No Atomicity**: Does not guarantee atomic operations
+    3. **Prevents Reordering**: Compiler won't reorder instructions around volatile access
+    
+    **When to Use:**
+    
+    - Flags to signal state changes between threads
+    - Double-checked locking pattern
+    - Reading/writing single variables
+    
+    **Double-Checked Locking Example:**
+    
+    ```java
+    public class Singleton {
+        private volatile static Singleton instance;
+        
+        private Singleton() {}
+        
+        public static Singleton getInstance() {
+            if (instance == null) {              // First check
+                synchronized (Singleton.class) {
+                    if (instance == null) {      // Second check
+                        instance = new Singleton();
+                    }
+                }
+            }
+            return instance;
+        }
+    }
+    ```
+    
+    <Warning>
+    `volatile` alone cannot guarantee atomicity. For compound operations like `count++`, use `AtomicInteger` or `synchronized`.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Explain synchronized implementation">
+    **Bottom Layer Implementation:**
+    
+    Based on **Monitor (监视器)**:
+    - Each object has an associated Monitor
+    - Monitor contains a mutex lock and wait queue
+    - Thread acquires Monitor to execute synchronized code
+    
+    **Lock Upgrade Process:**
+    
+    1. **Biased Lock (偏向锁)**: Single thread access, minimal overhead
+    2. **Lightweight Lock (轻量级锁)**: Multiple threads, no heavy contention, uses CAS
+    3. **Heavyweight Lock (重量级锁)**: Heavy contention, uses OS-level mutex
+    
+    **Characteristics:**
+    
+    - Automatic lock release (managed by JVM)
+    - Can lock methods or code blocks
+    - Unfair lock (threads can cut in line)
+    - Provides both visibility and atomicity
+    
+    ```java
+    // Method level
+    public synchronized void method() {
+        // synchronized code
+    }
+    
+    // Block level
+    public void method() {
+        synchronized(this) {
+            // synchronized code
+        }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Database & MySQL
+
+<AccordionGroup>
+  <Accordion title="InnoDB vs MyISAM storage engines">
+    **Comparison Table:**
+    
+    | Feature | InnoDB | MyISAM |
+    |---------|--------|--------|
+    | **Transaction Support** | Yes (ACID) | No |
+    | **Locking** | Row-level (default) | Table-level only |
+    | **Foreign Keys** | Yes | No |
+    | **Crash Recovery** | Strong (via redo log) | Weak |
+    | **Storage** | Clustered index (data with index) | Separate data and index files |
+    | **Performance** | Better for writes, high concurrency | Better for read-only |
+    
+    **When to Use:**
+    
+    - **InnoDB**: Modern applications, transactions required, high concurrency (default since MySQL 5.5)
+    - **MyISAM**: Read-heavy, no transaction needs, logging systems
+  </Accordion>
+
+  <Accordion title="ACID transaction properties">
+    **Four Properties:**
+    
+    1. **Atomicity (原子性)**: All or nothing - implemented via **undo log**
+    2. **Consistency (一致性)**: Data integrity maintained - implemented via **undo log**
+    3. **Isolation (隔离性)**: Transactions don't interfere - implemented via **locks and MVCC**
+    4. **Durability (持久性)**: Changes are permanent - implemented via **redo log**
+    
+    **Isolation Levels:**
+    
+    1. **Read Uncommitted**: Dirty read possible
+    2. **Read Committed**: Prevents dirty read
+    3. **Repeatable Read**: Prevents dirty read and non-repeatable read (MySQL default)
+    4. **Serializable**: Prevents all issues, lowest concurrency
+    
+    ```sql
+    -- Set isolation level
+    SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+    
+    -- Start transaction
+    START TRANSACTION;
+    UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+    UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+    COMMIT; -- Atomicity: both or neither
+    ```
+  </Accordion>
+
+  <Accordion title="Why does B+ tree make queries fast?">
+    **Three Main Reasons:**
+    
+    1. **Shallower Tree (Less I/O)**:
+       - Non-leaf nodes only store keys (not data)
+       - More keys fit per node → fewer levels
+       - Fewer disk I/O operations needed
+    
+    2. **Redundant Nodes**:
+       - All non-leaf nodes are redundant indexes
+       - Makes insertion/deletion more efficient
+       - Less tree restructuring needed
+    
+    3. **Linked Leaf Nodes**:
+       - Leaf nodes connected as linked list
+       - Efficient range queries
+       - B tree requires tree traversal for ranges
+    
+    **Comparison:**
+    
+    - **Binary Tree**: Too deep, too many I/O operations
+    - **B Tree**: Stores data in all nodes, not optimal for range queries
+    - **B+ Tree**: Best balance for database use cases
+    
+    ```
+    B+ Tree Structure:
+              [10, 20, 30]
+             /    |    |   \
+    [1,5,8] [11,15] [21,25] [31,35]
+       ↓       ↓       ↓       ↓
+    (linked for range scans)
+    ```
+  </Accordion>
+
+  <Accordion title="When does index fail?">
+    **Common Scenarios:**
+    
+    1. **Left/Both-side LIKE**: `LIKE '%abc'` or `LIKE '%abc%'`
+    2. **Function on Column**: `WHERE UPPER(name) = 'JOHN'`
+    3. **Expression Calculation**: `WHERE age + 1 = 30`
+    4. **Implicit Type Conversion**: String column with numeric input
+    5. **Not Following Leftmost Prefix**: In composite index (a,b,c), query only uses b
+    6. **OR without Index**: `WHERE indexed_col = 1 OR non_indexed_col = 2`
+    
+    **Solutions:**
+    
+    ```sql
+    -- Bad: Index fails
+    SELECT * FROM users WHERE UPPER(name) = 'JOHN';
+    
+    -- Good: Index works
+    SELECT * FROM users WHERE name = 'john';
+    
+    -- Bad: Left-side wildcard
+    SELECT * FROM products WHERE name LIKE '%phone';
+    
+    -- Good: Right-side wildcard
+    SELECT * FROM products WHERE name LIKE 'phone%';
+    ```
+  </Accordion>
+
+  <Accordion title="Explain MVCC (Multi-Version Concurrency Control)">
+    **Core Concepts:**
+    
+    **1. Version Chain:**
+    - Each row modification creates a new version
+    - Versions linked by rollback pointer
+    - Old versions kept in undo log
+    
+    **2. ReadView:**
+    - Snapshot of active transactions
+    - Determines which version is visible
+    - Different behavior for isolation levels:
+      - **Read Committed**: New ReadView per query
+      - **Repeatable Read**: Reuse same ReadView in transaction
+    
+    **3. Visibility Rules:**
+    - If version's transaction ID < ReadView's low watermark → visible
+    - If version's transaction ID in active list → not visible
+    - Otherwise check specific rules
+    
+    **Benefits:**
+    - Readers don't block writers
+    - Writers don't block readers
+    - Higher concurrency than lock-based approach
+    
+    ```sql
+    -- Transaction 1
+    START TRANSACTION;
+    SELECT * FROM users WHERE id = 1; -- Creates ReadView
+    -- Sees version created before this point
+    
+    -- Transaction 2 (concurrent)
+    UPDATE users SET name = 'new' WHERE id = 1;
+    COMMIT;
+    
+    -- Transaction 1 continues
+    SELECT * FROM users WHERE id = 1; -- Still sees old version
+    COMMIT;
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<Card title="Practice Coding Exercises" icon="code" href="/interview/coding-exercises">
+  Apply your knowledge with hands-on coding problems and solutions
+</Card>
